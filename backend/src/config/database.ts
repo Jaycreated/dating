@@ -14,11 +14,14 @@ const pool = new Pool(
     ? {
         connectionString: process.env.DATABASE_URL,
         ssl: {
-          rejectUnauthorized: false, // Required for Neon
+          rejectUnauthorized: true,
+          // Add more specific SSL options if needed
         },
-        max: 20,
+        max: 10, // Reduced max connections to avoid overloading
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000, // Increased to 10 seconds for Neon
+        connectionTimeoutMillis: 20000, // Increased to 20 seconds
+        query_timeout: 10000, // Add query timeout
+        statement_timeout: 10000, // Add statement timeout
       }
     : {
         host: process.env.DB_HOST || 'localhost',
@@ -92,7 +95,7 @@ export const initializeDatabase = async () => {
         from_user_id INTEGER NOT NULL,
         type VARCHAR(50) NOT NULL,
         message TEXT NOT NULL,
-        read BOOLEAN DEFAULT FALSE,
+        is_read BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -105,7 +108,7 @@ export const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_matches_target_user_id ON matches(target_user_id);
       CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-      CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, read);
+      CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, is_read);
     `);
 
     console.log('✅ Database initialized successfully');

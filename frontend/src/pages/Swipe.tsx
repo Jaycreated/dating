@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, User, ArrowLeft, Sparkles } from 'lucide-react';
+import MatchModal from '../components/MatchModal';
 import { SwipeCard } from '../components/SwipeCard';
 import { userAPI, matchAPI } from '../services/api';
 
@@ -186,46 +187,14 @@ const Swipe = () => {
 
       {/* Match Modal */}
       {showMatchModal && matchedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center animate-bounce-in">
-            <div className="mb-6">
-              <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                It's a Match!
-              </h2>
-              <p className="text-gray-600">
-                You and {matchedUser.name} liked each other
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-4 mb-6">
-              {matchedUser.photos && matchedUser.photos[0] && (
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-pink-500">
-                  <img
-                    src={matchedUser.photos[0]}
-                    alt={matchedUser.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={closeMatchModal}
-                className="flex-1 px-6 py-3 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition font-semibold"
-              >
-                Keep Swiping
-              </button>
-              <button
-                onClick={() => navigate('/matches')}
-                className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
-              >
-                View Matches
-              </button>
-            </div>
-          </div>
-        </div>
+        <MatchModal 
+          matchedUser={{
+            id: matchedUser.id,
+            name: matchedUser.name,
+            photos: matchedUser.photos
+          }}
+          onClose={closeMatchModal}
+        />
       )}
     </div>
   );

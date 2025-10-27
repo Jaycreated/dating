@@ -6,7 +6,7 @@ export interface Notification {
   from_user_id: number;
   type: string;
   message: string;
-  read: boolean;
+  is_read: boolean;
   created_at: Date;
   from_user_name?: string;
   from_user_photo?: string;
@@ -44,7 +44,7 @@ export class NotificationModel {
   static async getUnreadCount(userId: number): Promise<number> {
     const result = await pool.query(
       `SELECT COUNT(*) as count FROM notifications 
-       WHERE user_id = $1 AND read = FALSE`,
+       WHERE user_id = $1 AND is_read = FALSE`,
       [userId]
     );
     return parseInt(result.rows[0].count);
@@ -52,14 +52,14 @@ export class NotificationModel {
 
   static async markAsRead(notificationId: number): Promise<void> {
     await pool.query(
-      `UPDATE notifications SET read = TRUE WHERE id = $1`,
+      `UPDATE notifications SET is_read = TRUE WHERE id = $1`,
       [notificationId]
     );
   }
 
   static async markAllAsRead(userId: number): Promise<void> {
     await pool.query(
-      `UPDATE notifications SET read = TRUE WHERE user_id = $1`,
+      `UPDATE notifications SET is_read = TRUE WHERE user_id = $1`,
       [userId]
     );
   }
