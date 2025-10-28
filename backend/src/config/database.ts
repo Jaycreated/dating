@@ -111,6 +111,27 @@ export const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, is_read);
     `);
 
+    // Payment transactions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS payment_transactions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        reference VARCHAR(100) UNIQUE NOT NULL,
+        amount INTEGER NOT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'pending',
+        payment_method VARCHAR(50) DEFAULT 'card',
+        service_type VARCHAR(50) NOT NULL,
+        metadata JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      -- Create indexes for payment transactions
+      CREATE INDEX IF NOT EXISTS idx_payment_transactions_user_id ON payment_transactions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_payment_transactions_reference ON payment_transactions(reference);
+      CREATE INDEX IF NOT EXISTS idx_payment_transactions_status ON payment_transactions(status);
+    `);
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
@@ -120,4 +141,5 @@ export const initializeDatabase = async () => {
   }
 };
 
-export default pool;
+// Export the pool for direct use
+export { pool };

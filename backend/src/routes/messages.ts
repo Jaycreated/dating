@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { MessageController } from '../controllers/messageController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requirePayment } from '../middleware/auth';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+
+// Payment verification for all message routes
+router.use(requirePayment);
 
 // POST /api/messages/:matchId
 router.post('/:matchId', MessageController.sendMessage);
