@@ -26,11 +26,21 @@ export const initializeChatPayment = async (req: Request, res: Response) => {
     const [firstName, ...lastNameParts] = user.name.split(' ');
     const lastName = lastNameParts.join(' ') || 'User';
 
-    // Initialize payment
-    const amount = 1000; // ₦1000.00 in kobo
+    // Get amount and plan type from request body
+    const { amount, planType } = req.body;
+    
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid amount' });
+    }
+    
+    if (!planType || (planType !== 'daily' && planType !== 'monthly')) {
+      return res.status(400).json({ success: false, error: 'Invalid plan type' });
+    }
+    
     const result = await initializePayment(user.email, amount, {
       userId: user.id,
-      service: 'chat_access'
+      service: 'chat_access',
+      planType
     });
     
     if (!result.success || !result.data) {
