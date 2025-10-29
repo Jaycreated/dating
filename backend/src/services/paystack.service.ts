@@ -83,7 +83,7 @@ export const initializePayment = async (
       amount: amount * 100, // Convert to kobo
       reference,
       callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
-      channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+      channels: ['bank_transfer', 'card'],
       metadata: {
         ...metadata,
         custom_fields: [
@@ -105,7 +105,8 @@ export const initializePayment = async (
       data: {
         ...response.data.data,
         reference,
-        payment_url: response.data.data.authorization_url  // Ensure this is set correctly
+        payment_url: response.data.data.authorization_url,
+        redirect_url: `${process.env.FRONTEND_URL}/payment/callback?reference=${reference}`
       }
     };
   } catch (error: any) {

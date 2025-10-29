@@ -118,17 +118,36 @@ export const notificationAPI = {
   },
 
   markAsRead: async (notificationId: number) => {
-    const response = await api.put(`/api/notifications/${notificationId}/read`);
+    const response = await api.patch(`/api/notifications/${notificationId}/read`);
     return response.data;
   },
 
   markAllAsRead: async () => {
-    const response = await api.put('/api/notifications/read-all');
+    const response = await api.patch('/api/notifications/read-all');
     return response.data;
   },
 
   deleteNotification: async (notificationId: number) => {
     const response = await api.delete(`/api/notifications/${notificationId}`);
+    return response.data;
+  },
+};
+
+// Payment API
+export const paymentAPI = {
+  checkChatAccess: async () => {
+    const response = await api.get('/api/payments/chat/access');
+    return response.data;
+  },
+  initializeChatPayment: async (amount: number, planType: 'daily' | 'monthly') => {
+    const response = await api.post('/api/payments/chat/initialize', { 
+      amount,
+      planType 
+    });
+    return response.data;
+  },
+  verifyPayment: async (reference: string) => {
+    const response = await api.post('/api/payments/verify', { reference });
     return response.data;
   },
 };

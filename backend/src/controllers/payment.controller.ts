@@ -94,6 +94,23 @@ export const verifyPayment = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Reference is required' });
     }
 
+    // First check if payment is already verified in our database
+    const existingTransaction = await pool.query(
+      'SELECT status, user_id FROM payment_transactions WHERE reference = $1',
+      [reference]
+    );
+
+    // If already verified and successful, just return success
+    if (existingTransaction.rows.length > 0 && existingTransaction.rows[0].status === 'success') {
+      const userId = existingTransaction.rows[0].user_id;
+      // Ensure user has chat access
+      await pool.query(
+        'UPDATE users SET has_chat_access = true, payment_date = NOW() WHERE id = $1',
+        [userId]
+      );
+      return res.json({ success: true, status: 'success' });
+    }
+
     // Verify with Paystack
     const result = await verifyTransaction(reference);
     
@@ -101,7 +118,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: result.error });
     }
 
-    const { status, amount, paid_at } = result.data;
+    const { status, amount, paid_at } = result.data || {};
     
     if (status !== 'success') {
       return res.json({ 
@@ -114,23 +131,34 @@ export const verifyPayment = async (req: Request, res: Response) => {
     // Update payment status in database
     await pool.query('BEGIN');
     
-    // Update transaction
+    // Update transaction status in database
     await pool.query(
-      `UPDATE payment_transactions 
-       SET status = 'success', updated_at = NOW()
-       WHERE reference = $1 AND user_id = $2`,
-      [reference, userId]
+      'UPDATE payment_transactions SET status = $1, updated_at = NOW() WHERE reference = $2',
+      [status, reference]
     );
 
-    // Grant chat access
-    await pool.query(
-      `UPDATE users 
-       SET has_chat_access = TRUE, 
-           payment_date = $1,
-           payment_amount = $2
-       WHERE id = $3`,
-      [new Date(paid_at), amount / 100, userId] // Convert from kobo to naira
-    );
+    // If payment was successful, grant chat access
+    if (status === 'success') {
+      // First get the user ID from the transaction if not already available
+      const transactionUser = await pool.query(
+        'SELECT user_id FROM payment_transactions WHERE reference = $1',
+        [reference]
+      );
+      
+      const targetUserId = transactionUser.rows[0]?.user_id || userId;
+      
+      // Grant chat access
+      await pool.query(
+        'UPDATE users SET has_chat_access = true, payment_date = NOW() WHERE id = $1',
+        [targetUserId]
+      );
+      
+      // Also update the user's payment reference
+      await pool.query(
+        'UPDATE users SET payment_reference = $1 WHERE id = $2',
+        [reference, targetUserId]
+      );
+    }
 
     await pool.query('COMMIT');
 
@@ -150,8 +178,14 @@ export const checkChatAccess = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     
+    // Get user's chat access status and payment details
     const result = await pool.query(
-      'SELECT has_chat_access, payment_date FROM users WHERE id = $1',
+      `SELECT u.has_chat_access, u.payment_date, pt.metadata->>'planType' as plan_type
+       FROM users u
+       LEFT JOIN payment_transactions pt ON u.payment_reference = pt.reference
+       WHERE u.id = $1
+       ORDER BY pt.created_at DESC
+       LIMIT 1`,
       [userId]
     );
 
@@ -159,10 +193,44 @@ export const checkChatAccess = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    const { has_chat_access, payment_date, plan_type } = result.rows[0];
+    let hasAccess = has_chat_access === true;
+    
+    // If user has access, check if it's still valid based on payment date and plan type
+    if (hasAccess && payment_date) {
+      const paymentDate = new Date(payment_date);
+      const now = new Date();
+      
+      // Check if access has expired
+      if (plan_type === 'daily') {
+        // For daily plan, check if it's been more than 24 hours
+        const hoursDiff = (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60);
+        if (hoursDiff > 24) {
+          hasAccess = false;
+          // Update access status in database
+          await pool.query(
+            'UPDATE users SET has_chat_access = false WHERE id = $1',
+            [userId]
+          );
+        }
+      } else if (plan_type === 'monthly') {
+        // For monthly plan, check if it's been more than 30 days
+        const daysDiff = (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff > 30) {
+          hasAccess = false;
+          // Update access status in database
+          await pool.query(
+            'UPDATE users SET has_chat_access = false WHERE id = $1',
+            [userId]
+          );
+        }
+      }
+    }
+
     res.json({
       success: true,
-      hasAccess: result.rows[0].has_chat_access,
-      paymentDate: result.rows[0].payment_date
+      hasAccess,
+      paymentDate: payment_date
     });
   } catch (error) {
     console.error('Error checking chat access:', error);

@@ -10,7 +10,10 @@ import Swipe from './pages/Swipe';
 import Matches from './pages/Matches';
 import Notifications from './pages/Notifications';
 import Chat from './pages/Chat';
+import PricingPage from './pages/PricingPage';
+
 import ChatList from './pages/ChatList';
+import ChatPaymentPage from './pages/ChatPaymentPage';
 
 function App() {
   return (
@@ -28,6 +31,8 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/chats" element={<ChatList />} />
         <Route path="/chat/:matchId" element={<Chat />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/payment/chat" element={<ChatPaymentPage />} />
       </Routes>
     </Router>
   );
