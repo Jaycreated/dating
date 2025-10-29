@@ -13,11 +13,20 @@ const ChatPaymentPage: React.FC = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('daily');
 
-  // Check for payment reference in URL (callback from Paystack)
+  // Check for payment reference in URL or localStorage (callback from Paystack)
   useEffect(() => {
-    const reference = searchParams.get('reference') || searchParams.get('trxref');
-    if (reference) {
-      verifyPayment(reference);
+    const urlReference = searchParams.get('reference') || searchParams.get('trxref');
+    const storedReference = localStorage.getItem('payment_reference');
+    
+    if (urlReference) {
+      // Clear the stored reference if we have one in the URL
+      if (storedReference) {
+        localStorage.removeItem('payment_reference');
+      }
+      verifyPayment(urlReference);
+    } else if (storedReference) {
+      // If no URL reference but we have a stored one, check if payment is complete
+      verifyPayment(storedReference);
     }
   }, [searchParams]);
 
@@ -29,6 +38,10 @@ const ChatPaymentPage: React.FC = () => {
       const response = await paymentAPI.initializeChatPayment(amount, selectedPlan);
       
       if (response.success && response.data?.payment_url) {
+        // Store the reference in localStorage for verification after redirect
+        if (response.data.reference) {
+          localStorage.setItem('payment_reference', response.data.reference);
+        }
         // Redirect to Paystack payment page
         window.location.href = response.data.payment_url;
       } else {
