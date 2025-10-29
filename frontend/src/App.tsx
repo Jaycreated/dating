@@ -15,6 +15,7 @@ import PricingPage from './pages/PricingPage';
 import ChatList from './pages/ChatList';
 import ChatPaymentPage from './pages/ChatPaymentPage';
 import PaymentCallback from './pages/PaymentCallback';
+import UserProfile from './pages/UserProfile';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/payment/chat" element={<ChatPaymentPage />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
+        <Route path="/profile" element={<UserProfile />} />
       </Routes>
     </Router>
   );

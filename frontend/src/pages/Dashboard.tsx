@@ -80,7 +80,11 @@ const Dashboard = () => {
             >
               <MessageCircle className="w-6 h-6 text-gray-600" />
             </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition">
+            <button 
+              onClick={() => navigate('/profile')}
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+              title="My Profile"
+            >
               <User className="w-6 h-6 text-gray-600" />
             </button>
             <button
