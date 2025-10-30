@@ -138,32 +138,66 @@ export const optionalAuthenticate = (req: Request, _res: Response, next: NextFun
   next();
 };
 
+/**
+ * Middleware to check if user has paid for chat access
+ * Must be used after authenticate middleware
+ */
 export const requirePayment = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+  console.log(`🔒 [PAYMENT] Checking chat access for user ${req.userId}`);
+  
+  if (!req.userId) {
+    console.error('❌ [PAYMENT] No user ID in request - authentication may have failed');
+    return res.status(401).json({ 
+      success: false,
+      error: 'Authentication required',
+      code: 'AUTH_REQUIRED'
+    });
+  }
 
+  try {
+    console.log(`🔍 [PAYMENT] Checking chat access for user ID: ${req.userId}`);
     const result = await pool.query(
-      'SELECT has_chat_access FROM users WHERE id = $1',
+      'SELECT id, has_chat_access, payment_date, payment_reference FROM users WHERE id = $1',
       [req.userId]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!result.rows[0].has_chat_access) {
-      return res.status(403).json({ 
-        error: 'Payment required',
-        code: 'PAYMENT_REQUIRED',
-        message: 'You need to make a payment to access chat features'
+      console.error(`❌ [PAYMENT] User not found with ID: ${req.userId}`);
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found',
+        code: 'USER_NOT_FOUND'
       });
     }
 
+    const user = result.rows[0];
+    console.log(`ℹ️ [PAYMENT] User ${user.id} chat access: ${user.has_chat_access}`);
+    
+    if (!user.has_chat_access) {
+      console.log(`🚫 [PAYMENT] User ${user.id} does not have chat access`);
+      return res.status(403).json({ 
+        success: false,
+        error: 'Payment required',
+        code: 'PAYMENT_REQUIRED',
+        message: 'You need to make a payment to access chat features',
+        details: {
+          userId: user.id,
+          hasPaid: user.has_chat_access,
+          lastPaymentDate: user.payment_date,
+          paymentReference: user.payment_reference
+        }
+      });
+    }
+
+    console.log(`✅ [PAYMENT] User ${user.id} has valid chat access`);
     next();
   } catch (error) {
-    console.error('Payment verification error:', error);
-    return res.status(500).json({ error: 'Failed to verify payment status' });
+    console.error('❌ [PAYMENT] Error verifying payment status:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to verify payment status',
+      code: 'PAYMENT_VERIFICATION_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };

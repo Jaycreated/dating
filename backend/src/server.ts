@@ -7,7 +7,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import { initializeDatabase } from './config/database';
+import { initializeDatabase, pool } from './config/database';
 import { MessageModel } from './models/Message';
 
 // Import routes
@@ -91,19 +91,57 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Socket.IO authentication middleware
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   
   if (!token) {
-    return next(new Error('Authentication error'));
+    console.error('❌ [SOCKET] No token provided');
+    return next(new Error('Authentication token is required'));
   }
 
   try {
+    // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: number };
-    socket.data.userId = decoded.userId;
-    next();
+    
+    if (!decoded || !decoded.userId) {
+      console.error('❌ [SOCKET] Invalid token format');
+      return next(new Error('Invalid token format'));
+    }
+    
+    const userId = decoded.userId;
+    
+    // Verify user has chat access
+    try {
+      const result = await pool.query(
+        'SELECT id, has_chat_access FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.error(`❌ [SOCKET] User not found with ID: ${userId}`);
+        return next(new Error('User not found'));
+      }
+      
+      const user = result.rows[0];
+      
+      if (!user.has_chat_access) {
+        console.log(`🚫 [SOCKET] User ${userId} does not have chat access`);
+        return next(new Error('Payment required for chat access'));
+      }
+      
+      // All checks passed, attach user ID to socket
+      socket.data.userId = userId;
+      console.log(`✅ [SOCKET] User ${userId} authenticated successfully`);
+      next();
+      
+    } catch (dbError) {
+      console.error('❌ [SOCKET] Database error during authentication:', dbError);
+      return next(new Error('Authentication error'));
+    }
+    
   } catch (error) {
-    next(new Error('Authentication error'));
+    console.error('❌ [SOCKET] Token verification failed:', error);
+    return next(new Error('Invalid or expired token'));
   }
 });
 
