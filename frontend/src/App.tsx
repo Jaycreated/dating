@@ -18,6 +18,7 @@ import PaymentCallback from './pages/PaymentCallback';
 import UserProfile from './pages/UserProfile';
 import PublicProfile from './pages/PublicProfile';
 import Settings from './pages/Settings';
+import HelpSupport from './pages/HelpSupport';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile/:id" element={<PublicProfile />} />
+        <Route path="/support" element={<HelpSupport />} />
       </Routes>
     </Router>
   );
