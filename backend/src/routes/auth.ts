@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
-import { validateRegistration, validateLogin, handleValidationErrors } from '../middleware/validation';
+import { 
+  validateRegistration, 
+  validateLogin, 
+  validateChangePassword,
+  handleValidationErrors 
+} from '../middleware/validation';
 
 const router = Router();
 
@@ -13,5 +18,14 @@ router.post('/login', validateLogin, handleValidationErrors, AuthController.logi
 
 // GET /api/auth/me
 router.get('/me', authenticate, AuthController.getMe);
+
+// POST /api/auth/change-password
+router.post(
+  '/change-password',
+  authenticate,
+  validateChangePassword,
+  handleValidationErrors,
+  AuthController.changePassword
+);
 
 export default router;

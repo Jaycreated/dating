@@ -101,4 +101,34 @@ export class AuthController {
       res.status(500).json({ error: 'Failed to fetch user' });
     }
   }
+
+  static async changePassword(req: Request, res: Response) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.userId!;
+
+      // Get user from database
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update password in database
+      await UserModel.updatePassword(userId, newPasswordHash);
+
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Failed to change password' });
+    }
+  }
 }

@@ -12,6 +12,80 @@ declare global {
 }
 
 export class UserController {
+  static async getSettings(req: Request, res: Response) {
+    try {
+      const userId = req.userId!;
+      const user = await UserModel.findById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Parse preferences if it's a string
+      const preferences = typeof user.preferences === 'string' 
+        ? JSON.parse(user.preferences) 
+        : user.preferences || {};
+
+      // Return only the settings we want to expose
+      const settings = {
+        darkMode: preferences.darkMode || false,
+        notifications: {
+          matches: preferences.notifications?.matches ?? true,
+          messages: preferences.notifications?.messages ?? true,
+          promotions: preferences.notifications?.promotions ?? false
+        }
+      };
+
+      res.json({ settings });
+    } catch (error) {
+      console.error('Get settings error:', error);
+      res.status(500).json({ error: 'Failed to fetch user settings' });
+    }
+  }
+
+  static async updateSettings(req: Request, res: Response) {
+    try {
+      const userId = req.userId!;
+      const { darkMode, notifications } = req.body;
+
+      // Validate input
+      if (darkMode !== undefined && typeof darkMode !== 'boolean') {
+        return res.status(400).json({ error: 'Invalid darkMode value' });
+      }
+
+      const updateData: any = {};
+      const preferences: any = {};
+      
+      if (darkMode !== undefined) {
+        preferences.darkMode = darkMode;
+      }
+
+      if (notifications) {
+        preferences.notifications = preferences.notifications || {};
+        if (notifications.matches !== undefined) {
+          preferences.notifications.matches = notifications.matches;
+        }
+        if (notifications.messages !== undefined) {
+          preferences.notifications.messages = notifications.messages;
+        }
+        if (notifications.promotions !== undefined) {
+          preferences.notifications.promotions = notifications.promotions;
+        }
+      }
+
+      if (Object.keys(preferences).length > 0) {
+        updateData.preferences = preferences;
+      }
+
+      await UserModel.update(userId, updateData);
+      
+      res.json({ success: true, message: 'Settings updated successfully' });
+    } catch (error) {
+      console.error('Update settings error:', error);
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
+  }
+
   static async getPublicProfile(req: Request, res: Response) {
     try {
       // The user ID is already validated by the validateUserIdParam middleware

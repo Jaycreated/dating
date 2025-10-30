@@ -17,6 +17,7 @@ import ChatPaymentPage from './pages/ChatPaymentPage';
 import PaymentCallback from './pages/PaymentCallback';
 import UserProfile from './pages/UserProfile';
 import PublicProfile from './pages/PublicProfile';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
         <Route path="/payment/chat" element={<ChatPaymentPage />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/user/:id" element={<PublicProfile />} />
       </Routes>
     </Router>

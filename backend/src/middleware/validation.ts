@@ -12,6 +12,17 @@ export const validateLogin = [
   body('password').notEmpty().withMessage('Password is required'),
 ];
 
+export const validateChangePassword = [
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+  body('confirmPassword').custom((value, { req }) => {
+    if (value !== req.body.newPassword) {
+      throw new Error('Passwords do not match');
+    }
+    return true;
+  }),
+];
+
 export const validateProfile = [
   body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
   body('age').optional().isInt({ min: 18, max: 120 }).withMessage('Age must be between 18 and 120'),

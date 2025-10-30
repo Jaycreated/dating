@@ -33,6 +33,12 @@ router.get('/profile', (req, res, next) => {
 // PUT /api/users/profile
 router.put('/profile', validateProfile, handleValidationErrors, UserController.updateProfile);
 
+// GET /api/users/settings - Get user settings
+router.get('/settings', UserController.getSettings);
+
+// PUT /api/users/settings - Update user settings
+router.put('/settings', UserController.updateSettings);
+
 // GET /api/users/potential-matches - Get potential matches
 router.get('/potential-matches', (req: Request, res: Response, next: NextFunction) => {
   console.log('🔍 [ROUTE] /api/users/potential-matches - Request received');

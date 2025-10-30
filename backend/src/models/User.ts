@@ -146,4 +146,11 @@ export class UserModel {
       throw error;
     }
   }
+
+  static async updatePassword(userId: number, newPasswordHash: string): Promise<void> {
+    await pool.query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [newPasswordHash, userId]
+    );
+  }
 }

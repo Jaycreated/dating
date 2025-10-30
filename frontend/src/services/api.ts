@@ -141,6 +141,25 @@ export const userAPI = {
     const response = await api.get('/api/users/potential-matches');
     return response.data;
   },
+
+  getSettings: async () => {
+    const response = await api.get('/api/users/settings');
+    return response.data;
+  },
+  
+  updateSettings(settings: any) {
+    return api.put('/users/settings', settings);
+  },
+  
+  changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    const response = await api.post('/api/auth/change-password', data);
+    return response.data;
+  },
+  
+  logout: async () => {
+    const response = await api.post('/api/auth/logout');
+    return response.data;
+  }
 };
 
 // Match API
