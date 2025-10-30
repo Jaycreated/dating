@@ -157,11 +157,15 @@ export const userAPI = {
   },
   
   updateSettings(settings: any) {
-    return api.put('/users/settings', settings);
+    return api.put('/api/users/settings', settings);
   },
   
-  changePassword: async (data: { currentPassword: string; newPassword: string }) => {
-    const response = await api.post('/api/auth/change-password', data);
+  changePassword: async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    const response = await api.post('/api/auth/change-password', {
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+      confirmPassword: data.confirmPassword || data.newPassword // Fallback to newPassword if confirmPassword is not provided
+    });
     return response.data;
   },
   

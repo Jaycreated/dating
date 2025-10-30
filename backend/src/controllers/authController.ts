@@ -131,4 +131,15 @@ export class AuthController {
       res.status(500).json({ error: 'Failed to change password' });
     }
   }
+
+  static async logout(_req: Request, res: Response) {
+    try {
+      // In a stateless JWT system, logout is handled client-side by removing the token
+      // This endpoint can be used to perform any server-side cleanup if needed
+      res.json({ message: 'Logout successful' });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ error: 'Logout failed' });
+    }
+  }
 }

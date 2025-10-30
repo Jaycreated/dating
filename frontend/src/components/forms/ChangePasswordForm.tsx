@@ -35,6 +35,25 @@ export const ChangePasswordForm = ({ onSuccess, onCancel }: ChangePasswordFormPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Reset errors
+    setError('');
+    
+    // Frontend validation
+    if (!formData.currentPassword.trim()) {
+      setError('Current password is required');
+      return;
+    }
+    
+    if (!formData.newPassword.trim()) {
+      setError('New password is required');
+      return;
+    }
+    
+    if (formData.newPassword.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+    
     if (formData.newPassword !== formData.confirmPassword) {
       setError('New passwords do not match');
       return;
@@ -48,6 +67,7 @@ export const ChangePasswordForm = ({ onSuccess, onCancel }: ChangePasswordFormPr
       await userAPI.changePassword({
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword
       });
 
       setSuccess('Password changed successfully');
