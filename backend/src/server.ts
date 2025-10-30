@@ -30,8 +30,16 @@ const io = new Server(httpServer, {
 
 const PORT = process.env.PORT || 5000;
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,9 +49,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Dating API is running' });
+// Health check endpoint with detailed info
+app.get('/health', (_req, res) => {
+  const envInfo = {
+    nodeEnv: process.env.NODE_ENV,
+    port: process.env.PORT,
+    jwtSecret: process.env.JWT_SECRET ? '***SET***' : '***MISSING***',
+    databaseUrl: process.env.DATABASE_URL ? '***SET***' : '***MISSING***',
+    frontendUrl: process.env.FRONTEND_URL || 'Not set, using default',
+    // Add other important environment variables here
+  };
+  
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: envInfo,
+    memoryUsage: process.memoryUsage(),
+    uptime: process.uptime()
+  });
 });
 
 // API Routes

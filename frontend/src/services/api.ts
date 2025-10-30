@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+interface TokenPayload {
+  userId?: number;
+  exp?: number;
+  iat?: number;
+  [key: string]: any;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Create axios instance
@@ -14,15 +21,77 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
+    // Log token details
+    const tokenParts = token.split('.');
+    let tokenPayload: TokenPayload = {};
+    
+    if (tokenParts.length === 3) {
+      try {
+        tokenPayload = JSON.parse(atob(tokenParts[1]));
+        console.log('🔑 Token payload:', tokenPayload);
+        
+        // Check if token is expired
+        if (tokenPayload.exp) {
+          const isExpired = Date.now() >= tokenPayload.exp * 1000;
+          console.log(`⏰ Token is ${isExpired ? 'expired' : 'valid'}, expires: ${new Date(tokenPayload.exp * 1000).toISOString()}`);
+        }
+      } catch (e) {
+        console.error('Error parsing token:', e);
+      }
+    }
+    
+    // Add token to request
     config.headers.Authorization = `Bearer ${token}`;
+    console.log('🔑 Adding auth token to request:', {
+      tokenPrefix: token.substring(0, 10) + '...',
+      header: config.headers.Authorization.substring(0, 30) + '...',
+      url: config.url
+    });
+  } else {
+    console.warn('⚠️ No auth token found in localStorage');
   }
   return config;
+}, (error) => {
+  console.error('Request error:', error);
+  return Promise.reject(error);
 });
 
 // Handle response errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ [API] Response:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
   (error) => {
+    if (error.response) {
+      console.error('❌ [API] Error Response:', {
+        url: error.config?.url,
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers,
+        config: {
+          method: error.config?.method,
+          headers: error.config?.headers,
+          params: error.config?.params,
+          data: error.config?.data
+        }
+      });
+    } else if (error.request) {
+      console.error('❌ [API] No response received:', {
+        message: error.message,
+        request: error.request
+      });
+    } else {
+      console.error('❌ [API] Error:', {
+        message: error.message,
+        stack: error.stack
+      });
+    }
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
@@ -53,6 +122,11 @@ export const authAPI = {
 
 // User API
 export const userAPI = {
+  getPublicProfile: async (userId: number) => {
+    const response = await api.get(`/api/users/${userId}`);
+    return response.data.user;
+  },
+  
   getProfile: async () => {
     const response = await api.get('/api/users/profile');
     return response.data;
@@ -118,12 +192,18 @@ export const notificationAPI = {
   },
 
   markAsRead: async (notificationId: number) => {
-    const response = await api.put(`/api/notifications/${notificationId}/read`);
+    const response = await api({
+      method: 'PUT',
+      url: `/api/notifications/${notificationId}/read`,
+    });
     return response.data;
   },
 
   markAllAsRead: async () => {
-    const response = await api.patch('/api/notifications/read-all');
+    const response = await api({
+      method: 'PUT',
+      url: '/api/notifications/read-all',
+    });
     return response.data;
   },
 

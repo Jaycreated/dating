@@ -34,20 +34,135 @@ const Swipe = () => {
     setError('');
 
     try {
+      console.log('🔍 [FRONTEND] Starting to load potential matches...');
+      
+      // Get and verify token
+      const token = localStorage.getItem('token');
+      console.log('🔑 [FRONTEND] Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'No token found');
+      
+      if (!token) {
+        console.error('❌ [FRONTEND] No authentication token found in localStorage');
+        setError('Authentication required. Please log in.');
+        navigate('/login');
+        return;
+      }
+      
+      console.log('🔑 [FRONTEND] Found authentication token in localStorage');
+      
+      try {
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('🔍 [FRONTEND] Token payload:', {
+            userId: payload.userId,
+            email: payload.email,
+            iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : 'N/A',
+            exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'N/A',
+            now: new Date().toISOString()
+          });
+          
+          // Check if token is expired
+          if (payload.exp && Date.now() >= payload.exp * 1000) {
+            console.error('❌ [FRONTEND] Token has expired!');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setError('Your session has expired. Please log in again.');
+            navigate('/login');
+            return;
+          }
+        } else {
+          console.error('❌ [FRONTEND] Invalid token format');
+          setError('Invalid authentication token. Please log in again.');
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        }
+      } catch (e) {
+        console.error('❌ [FRONTEND] Error parsing token:', e);
+        setError('Error processing authentication. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      
+      // Log token details (without exposing the full token)
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        try {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('🔍 [FRONTEND] Token payload:', {
+            userId: payload.userId,
+            iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : 'N/A',
+            exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'N/A',
+            now: new Date().toISOString()
+          });
+        } catch (e) {
+          console.error('❌ [FRONTEND] Error parsing token payload:', e);
+        }
+      }
+      
+      console.log('🚀 [FRONTEND] Fetching potential matches from API...');
       const response = await userAPI.getPotentialMatches();
+      
+      if (!response) {
+        throw new Error('No response from server');
+      }
+      
+      console.log('✅ [FRONTEND] Received response from API');
+      console.log('📦 [FRONTEND] Response data:', response);
+      
       const matches = response.matches || [];
+      console.log(`📊 [FRONTEND] Found ${matches.length} potential matches`);
       
       // Parse JSON fields if they're strings
-      const parsedMatches = matches.map((match: any) => ({
-        ...match,
-        photos: typeof match.photos === 'string' ? JSON.parse(match.photos) : match.photos || [],
-        interests: typeof match.interests === 'string' ? JSON.parse(match.interests) : match.interests || [],
-      }));
+      const parsedMatches = matches.map((match: any, index: number) => {
+        try {
+          const parsed = {
+            ...match,
+            photos: match.photos ? (typeof match.photos === 'string' ? JSON.parse(match.photos) : match.photos) : [],
+            interests: match.interests ? (typeof match.interests === 'string' ? JSON.parse(match.interests) : match.interests) : [],
+          };
+          console.log(`👤 [MATCH-${index}] Processed:`, {
+            id: parsed.id,
+            name: parsed.name,
+            photoCount: parsed.photos?.length || 0,
+            interestCount: parsed.interests?.length || 0
+          });
+          return parsed;
+        } catch (error) {
+          console.error(`❌ [FRONTEND] Error parsing match data for match ${index}:`, error);
+          return null;
+        }
+      }).filter(Boolean);
 
+      console.log(`🎯 [FRONTEND] Successfully parsed ${parsedMatches.length} matches`);
       setPotentialMatches(parsedMatches);
     } catch (err: any) {
-      console.error('Error loading matches:', err);
-      setError('Failed to load potential matches');
+      console.error('❌ [SWIPE] Error loading matches:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        responseData: err.response?.data,
+        config: {
+          url: err.config?.url,
+          method: err.config?.method,
+          headers: err.config?.headers,
+          params: err.config?.params,
+          data: err.config?.data
+        },
+        stack: err.stack
+      });
+      
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to load potential matches';
+      setError(`Error: ${errorMessage}`);
+      
+      // If unauthorized, redirect to login
+      if (err.response?.status === 401) {
+        console.log('🔐 [SWIPE] Unauthorized - redirecting to login');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }

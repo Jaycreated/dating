@@ -17,6 +17,10 @@ interface UserProfileData {
   bio?: string;
   location?: string;
   profilePhoto?: string;
+  preferences?: {
+    looking_for?: string;
+    [key: string]: any;
+  };
 }
 
 const UserProfile = () => {
@@ -35,6 +39,7 @@ const UserProfile = () => {
     bio: '',
     location: '',
     profilePhoto: '',
+    preferences: {},
   });
 
   useEffect(() => {
@@ -56,6 +61,7 @@ const UserProfile = () => {
             age: user.age || 0,
             gender: user.gender || '',
             location: user.location || '',
+            preferences: user.preferences || {},
           }));
         }
 
@@ -75,6 +81,7 @@ const UserProfile = () => {
           bio: userData.bio || 'Tell others something about yourself...',
           location: userData.location || '',
           profilePhoto: profilePhoto,
+          preferences: userData.preferences || {},
         });
         
         // Update localStorage with fresh data
@@ -102,10 +109,22 @@ const UserProfile = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Handle nested preferences object fields
+    if (name === 'sexual_orientation' || name === 'looking_for') {
+      setFormData(prev => ({
+        ...prev,
+        preferences: {
+          ...prev.preferences,
+          [name]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const validateForm = () => {
@@ -130,18 +149,16 @@ const UserProfile = () => {
     try {
       setIsSubmitting(true);
       
-      // Prepare the data to send to the server
-      const profileData = {
-        name: formData.name.trim(),
-        age: Number(formData.age),
-        gender: formData.gender,
-        bio: formData.bio?.trim(),
-        location: formData.location?.trim(),
-        profilePhoto: formData.profilePhoto,
+      // Prepare the data to be sent to the server
+      const updateData = {
+        ...formData,
+        // Include sexual_orientation and looking_for at the root level for the API
+        sexual_orientation: formData.preferences?.sexual_orientation,
+        looking_for: formData.preferences?.looking_for,
       };
       
-      console.log('Updating profile with:', profileData);
-      const updatedProfile = await userAPI.updateProfile(profileData);
+      console.log('Updating profile with:', updateData);
+      const updatedProfile = await userAPI.updateProfile(updateData);
       
       // Update local storage with new user data
       const storedUser = localStorage.getItem('user');
@@ -287,6 +304,8 @@ const UserProfile = () => {
                 gender={formData.gender}
                 age={formData.age}
                 location={formData.location || ''}
+                sexualOrientation={formData.preferences?.sexual_orientation}
+                lookingFor={formData.preferences?.looking_for}
                 isEditing={isEditing}
                 onInputChange={handleInputChange}
               />

@@ -1,4 +1,4 @@
-import { Mail, User, Calendar, MapPin } from 'lucide-react';
+import { Mail, User, Calendar, MapPin, Heart, Users } from 'lucide-react';
 import { Input } from '../forms/Input';
 
 interface ProfileBasicInfoProps {
@@ -6,6 +6,8 @@ interface ProfileBasicInfoProps {
   gender: string;
   age: number | string;
   location: string;
+  sexualOrientation?: string;
+  lookingFor?: string;
   isEditing: boolean;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
@@ -15,6 +17,8 @@ export const ProfileBasicInfo = ({
   gender,
   age,
   location,
+  sexualOrientation = '',
+  lookingFor = '',
   isEditing,
   onInputChange,
 }: ProfileBasicInfoProps) => {
@@ -69,6 +73,51 @@ export const ProfileBasicInfo = ({
             <div className="mt-1 flex items-center text-gray-900">
               <Calendar className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />
               <span>{age || 'Not specified'}</span>
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-500">Looking For</label>
+          {isEditing ? (
+            <select
+              name="looking_for"
+              value={lookingFor}
+              onChange={onInputChange}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md border"
+            >
+              <option value="">Select preference</option>
+              <option value="straight">Straight</option>
+              <option value="gay">Gay</option>
+              <option value="lesbian">Lesbian</option>
+              <option value="transgender">Transgender</option>
+            </select>
+          ) : (
+            <div className="mt-1 flex items-center text-gray-900">
+              <Heart className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />
+              <span>{lookingFor ? lookingFor.charAt(0).toUpperCase() + lookingFor.slice(1) : 'Not specified'}</span>
+            </div>
+          )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-500">Sexual Orientation</label>
+          {isEditing ? (
+            <select
+              name="sexual_orientation"
+              value={sexualOrientation}
+              onChange={onInputChange}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md border"
+            >
+              <option value="">Select orientation</option>
+              <option value="straight">Straight</option>
+              <option value="gay">Gay</option>
+              <option value="lesbian">Lesbian</option>
+              <option value="transgender">Transgender</option>
+            </select>
+          ) : (
+            <div className="mt-1 flex items-center text-gray-900">
+              <Users className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />
+              <span>{sexualOrientation ? sexualOrientation.charAt(0).toUpperCase() + sexualOrientation.slice(1) : 'Not specified'}</span>
             </div>
           )}
         </div>

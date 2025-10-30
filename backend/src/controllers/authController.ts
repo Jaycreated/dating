@@ -2,7 +2,15 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { UserModel } from '../models/User';
-import { AuthRequest } from '../middleware/auth';
+
+// Extend the Express Request type to include our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
 
 export class AuthController {
   static async register(req: Request, res: Response) {
@@ -79,7 +87,7 @@ export class AuthController {
     }
   }
 
-  static async getMe(req: AuthRequest, res: Response) {
+  static async getMe(req: Request, res: Response) {
     try {
       const user = await UserModel.findById(req.userId!);
       if (!user) {

@@ -16,6 +16,7 @@ import ChatList from './pages/ChatList';
 import ChatPaymentPage from './pages/ChatPaymentPage';
 import PaymentCallback from './pages/PaymentCallback';
 import UserProfile from './pages/UserProfile';
+import PublicProfile from './pages/PublicProfile';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/payment/chat" element={<ChatPaymentPage />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/user/:id" element={<PublicProfile />} />
       </Routes>
     </Router>
   );

@@ -1,10 +1,18 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { MessageModel } from '../models/Message';
 import { MatchModel } from '../models/Match';
-import { AuthRequest } from '../middleware/auth';
+
+// Extend the Express Request type to include our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
 
 export class MessageController {
-  static async sendMessage(req: AuthRequest, res: Response) {
+  static async sendMessage(req: Request, res: Response) {
     try {
       const receiverId = parseInt(req.params.matchId);
       const { content } = req.body;
@@ -31,7 +39,7 @@ export class MessageController {
     }
   }
 
-  static async getConversation(req: AuthRequest, res: Response) {
+  static async getConversation(req: Request, res: Response) {
     try {
       const otherUserId = parseInt(req.params.matchId);
 
@@ -50,7 +58,7 @@ export class MessageController {
     }
   }
 
-  static async getUnreadCount(req: AuthRequest, res: Response) {
+  static async getUnreadCount(req: Request, res: Response) {
     try {
       const count = await MessageModel.getUnreadCount(req.userId!);
 

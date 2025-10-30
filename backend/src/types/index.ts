@@ -7,9 +7,9 @@ export interface User {
   gender?: string;
   bio?: string;
   location?: string;
-  photos?: string; // JSON string array
+  photos?: string | string[]; // Can be a JSON string or an array
   interests?: string; // JSON string array
-  preferences?: string; // JSON object
+  preferences?: string | UserPreferences; // Can be a JSON string or object
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +18,8 @@ export interface UserPreferences {
   minAge?: number;
   maxAge?: number;
   gender?: string;
+  sexual_orientation?: 'straight' | 'gay' | 'lesbian' | 'transgender';
+  looking_for?: 'straight' | 'gay' | 'lesbian' | 'transgender';
   maxDistance?: number;
 }
 

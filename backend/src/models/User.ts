@@ -67,39 +67,83 @@ export class UserModel {
 
   static async getPotentialMatches(
     userId: number,
-    preferences: UserPreferences
+    preferences: any = {}
   ): Promise<User[]> {
-    let query = `
-      SELECT u.* FROM users u
-      WHERE u.id != $1
-      AND u.id NOT IN (
-        SELECT target_user_id FROM matches WHERE user_id = $1
-      )
-    `;
-    const params: any[] = [userId];
-    let paramCount = 2;
+    console.log(`🔍 [MODEL] [${new Date().toISOString()}] Starting getPotentialMatches for user ${userId}`);
+    console.log(`🔧 [MODEL] Preferences:`, JSON.stringify(preferences, null, 2));
+    
+    try {
+      // First, verify the user exists
+      console.log(`🔍 [MODEL] Looking up user with ID: ${userId}`);
+      const user = await this.findById(userId);
+      
+      if (!user) {
+        console.error(`❌ [MODEL] User not found with ID: ${userId}`);
+        throw new Error('User not found');
+      }
+      
+      console.log(`✅ [MODEL] Found user:`, {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        gender: user.gender,
+        age: user.age
+      });
 
-    if (preferences.gender) {
-      query += ` AND u.gender = $${paramCount}`;
-      params.push(preferences.gender);
-      paramCount++;
+      // First, get the user IDs that match our criteria
+      let query = `
+        WITH potential_matches AS (
+          SELECT u.id 
+          FROM users u
+          LEFT JOIN matches m ON u.id = m.target_user_id AND m.user_id = $1
+          WHERE u.id != $1
+          AND m.id IS NULL  -- This ensures no match exists
+      `;
+      
+      const params: any[] = [userId];
+      let paramCount = 2;
+
+      // Only apply gender filter if it's explicitly set in preferences
+      if (preferences && preferences.gender) {
+        console.log(`🔧 [MODEL] Filtering by gender: ${preferences.gender}`);
+        query += ` AND LOWER(u.gender) = LOWER($${paramCount})`;
+        params.push(preferences.gender);
+        paramCount++;
+      }
+
+      // Handle age range filters
+      if (preferences && (preferences.minAge || preferences.minAge === 0)) {
+        console.log(`🔧 [MODEL] Filtering by minimum age: ${preferences.minAge}`);
+        query += ` AND u.age >= $${paramCount}`;
+        params.push(preferences.minAge);
+        paramCount++;
+      }
+
+      if (preferences && preferences.maxAge) {
+        console.log(`🔧 [MODEL] Filtering by maximum age: ${preferences.maxAge}`);
+        query += ` AND u.age <= $${paramCount}`;
+        params.push(preferences.maxAge);
+        paramCount++;
+      }
+
+      // Close the CTE and select the full user data with random ordering
+      query += `
+        )
+        SELECT u.* 
+        FROM users u
+        INNER JOIN potential_matches pm ON u.id = pm.id
+        ORDER BY RANDOM()
+        LIMIT 20
+      `;
+      console.log(`🔍 [MODEL] Executing query:`, { query, params });
+      
+      const result = await pool.query(query, params);
+      console.log(`✅ [MODEL] Found ${result.rows.length} potential matches`);
+      
+      return result.rows;
+    } catch (error) {
+      console.error('❌ [MODEL] Error in getPotentialMatches:', error);
+      throw error;
     }
-
-    if (preferences.minAge) {
-      query += ` AND u.age >= $${paramCount}`;
-      params.push(preferences.minAge);
-      paramCount++;
-    }
-
-    if (preferences.maxAge) {
-      query += ` AND u.age <= $${paramCount}`;
-      params.push(preferences.maxAge);
-      paramCount++;
-    }
-
-    query += ' ORDER BY RANDOM() LIMIT 20';
-
-    const result = await pool.query(query, params);
-    return result.rows;
   }
 }
