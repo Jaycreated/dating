@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MapPin, Heart, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SwipeCardProps {
   user: {
@@ -20,6 +21,17 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const navigate = useNavigate();
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation if user is trying to drag/swipe
+    if (isDragging) {
+      e.preventDefault();
+      return;
+    }
+    // Navigate to the user's public profile
+    navigate(`/profile/${user.id}`);
+  };
 
   const photos = user.photos && user.photos.length > 0 
     ? user.photos 
@@ -100,6 +112,10 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && handleCardClick(e as any)}
       >
         {/* Photo */}
         <div className="relative h-[500px]">
@@ -146,8 +162,17 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 to-transparent" />
         </div>
 
-        {/* User Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+        {/* User Info - Wrapped in a clickable div that navigates to profile */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 p-6 text-white cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering the parent's onClick
+            navigate(`/profile/${user.id}`);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(`/profile/${user.id}`)}
+        >
           <h2 className="text-3xl font-bold mb-2">
             {user.name}, {user.age}
           </h2>

@@ -40,7 +40,7 @@ function App() {
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/user/:id" element={<PublicProfile />} />
+        <Route path="/profile/:id" element={<PublicProfile />} />
       </Routes>
     </Router>
   );

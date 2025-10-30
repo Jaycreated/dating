@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { userAPI } from '../services/api';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { ProfileBasicInfo } from '../components/profile/ProfileBasicInfo';
@@ -25,6 +25,23 @@ const PublicProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  const nextPhoto = () => {
+    if (profile && profile.photos.length > 0) {
+      setCurrentPhotoIndex((prevIndex) => 
+        prevIndex === profile.photos.length - 1 ? 0 : prevIndex + 1
+      );
+    }
+  };
+
+  const prevPhoto = () => {
+    if (profile && profile.photos.length > 0) {
+      setCurrentPhotoIndex((prevIndex) => 
+        prevIndex === 0 ? (profile.photos.length - 1) : prevIndex - 1
+      );
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -96,15 +113,80 @@ const PublicProfile = () => {
         </button>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <ProfileHeader 
-            name={profile.name}
-            age={profile.age}
-            profilePhoto={profile.photos?.[0]}
-            isEditing={false}
-          />
+          {/* Photo Carousel */}
+          <div className="relative h-96 bg-gray-100">
+            {profile.photos && profile.photos.length > 0 ? (
+              <>
+                <img
+                  src={profile.photos[currentPhotoIndex]}
+                  alt={`${profile.name}'s photo ${currentPhotoIndex + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Navigation Arrows */}
+                {profile.photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevPhoto();
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextPhoto();
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  </>
+                )}
+                
+                {/* Photo Indicators */}
+                {profile.photos.length > 1 && (
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                    {profile.photos.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentPhotoIndex(index);
+                        }}
+                        className={`h-2 w-2 rounded-full transition-colors ${
+                          index === currentPhotoIndex
+                            ? 'bg-white w-6'
+                            : 'bg-white/50 hover:bg-white/75'
+                        }`}
+                        aria-label={`Go to photo ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <div className="text-gray-400">No photos available</div>
+              </div>
+            )}
+          </div>
           
+          {/* Profile Content */}
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ProfileHeader 
+              name={profile.name}
+              age={profile.age}
+              profilePhoto={profile.photos?.[0]}
+              isEditing={false}
+            />
+            
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2">
                 <ProfileAbout 
                   bio={profile.bio || ''} 
