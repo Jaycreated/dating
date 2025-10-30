@@ -103,8 +103,17 @@ api.interceptors.response.use(
 );
 
 // Auth API
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  preferences?: {
+    lookingFor?: string;
+  };
+}
+
 export const authAPI = {
-  register: async (data: { name: string; email: string; password: string }) => {
+  register: async (data: RegisterData) => {
     const response = await api.post('/api/auth/register', data);
     return response.data;
   },

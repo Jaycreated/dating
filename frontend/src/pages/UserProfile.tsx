@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Edit, Save, X } from 'lucide-react';
+import { Edit, Plus, X } from 'lucide-react';
 import { Button } from '../components/forms/Button';
-import { Alert } from '../components/forms/Alert';
 import { userAPI } from '../services/api';
-import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { ProfileBasicInfo } from '../components/profile/ProfileBasicInfo';
 import { ProfileAbout } from '../components/profile/ProfileAbout';
+import { useToast } from '../components/ui/use-toast';
 
 interface UserProfileData {
   id: number;
@@ -16,7 +14,7 @@ interface UserProfileData {
   gender: string;
   bio?: string;
   location?: string;
-  profilePhoto?: string;
+  photos: string[];
   preferences?: {
     looking_for?: string;
     [key: string]: any;
@@ -24,39 +22,38 @@ interface UserProfileData {
 }
 
 const UserProfile = () => {
-  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  
-  const [formData, setFormData] = useState<Omit<UserProfileData, 'id' | 'email'>>({
+  const [_error, setError] = useState<string>('');
+
+  const [formData, setFormData] = useState<UserProfileData>({
+    id: 0,
     name: '',
+    email: '',
     age: 0,
     gender: '',
     bio: '',
     location: '',
-    profilePhoto: '',
+    photos: [],
     preferences: {},
   });
 
+  const { toast } = useToast();
+
+  // Fetch user profile
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
         setError('');
-        
-        // Get user data from localStorage for immediate UI update
+
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const user = JSON.parse(storedUser);
-          setUserEmail(user.email || '');
-          
-          // Set initial form data from localStorage (for faster initial render)
           setFormData(prev => ({
             ...prev,
+            email: user.email || '',
             name: user.name || '',
             age: user.age || 0,
             gender: user.gender || '',
@@ -65,34 +62,26 @@ const UserProfile = () => {
           }));
         }
 
-        // Then fetch fresh data from the server
         const response = await userAPI.getProfile();
-        console.log('Fetched profile data:', response);
-        
-        // Extract user data from the response (handle both nested and flat structures)
         const userData = response.user || response;
         const profilePhoto = userData.photos?.[0] || userData.profilePhoto || userData.avatar || '';
-        
-        // Update form data with server data
+
         setFormData({
+          email: userData.email || '',
           name: userData.name || '',
           age: userData.age || 0,
           gender: userData.gender || '',
           bio: userData.bio || 'Tell others something about yourself...',
           location: userData.location || '',
-          profilePhoto: profilePhoto,
+          photos: userData.photos || [],
           preferences: userData.preferences || {},
         });
-        
-        // Update localStorage with fresh data
+
         if (storedUser) {
           const user = JSON.parse(storedUser);
           localStorage.setItem('user', JSON.stringify({
             ...user,
             ...userData,
-            age: userData.age || user.age,
-            gender: userData.gender || user.gender,
-            location: userData.location || user.location,
             profilePhoto: profilePhoto,
           }));
         }
@@ -107,27 +96,7 @@ const UserProfile = () => {
     fetchProfile();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    // Handle nested preferences object fields
-    if (name === 'sexual_orientation' || name === 'looking_for') {
-      setFormData(prev => ({
-        ...prev,
-        preferences: {
-          ...prev.preferences,
-          [name]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-  };
-
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     if (!formData.name?.trim()) {
       setError('Name is required');
       return false;
@@ -142,62 +111,85 @@ const UserProfile = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-
     if (!validateForm()) return;
 
     try {
       setIsSubmitting(true);
-      
-      // Prepare the data to be sent to the server
-      const updateData = {
-        ...formData,
-        // Include sexual_orientation and looking_for at the root level for the API
-        sexual_orientation: formData.preferences?.sexual_orientation,
-        looking_for: formData.preferences?.looking_for,
-      };
-      
-      console.log('Updating profile with:', updateData);
-      const updatedProfile = await userAPI.updateProfile(updateData);
-      
-      // Update local storage with new user data
+
+      // Create a new object with only the fields we want to send
+      const updateData = { ...formData };
+
+      // Ensure we're not sending empty strings for optional fields
+      const cleanUpdateData = Object.entries(updateData).reduce((acc, [key, value]) => {
+        if (value !== '') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+
+      const updatedProfile = await userAPI.updateProfile(cleanUpdateData);
+
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         const user = JSON.parse(storedUser);
         const updatedUser = {
           ...user,
-          name: updatedProfile.name || user.name,
-          age: updatedProfile.age || user.age,
-          gender: updatedProfile.gender || user.gender,
-          bio: updatedProfile.bio || user.bio,
-          location: updatedProfile.location || user.location,
-          profilePhoto: updatedProfile.profilePhoto || updatedProfile.avatar || user.profilePhoto,
+          ...updatedProfile,
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
-      
-      setSuccess('Profile updated successfully!');
+
+      toast({ title: 'Success', description: 'Profile updated successfully!' });
       setIsEditing(false);
-      
-      // Refresh the profile data to ensure consistency
-      const response = await userAPI.getProfile();
-      const userData = response.user || response;
-      const profilePhoto = userData.photos?.[0] || userData.profilePhoto || userData.avatar || '';
-      
-      setFormData(prev => ({
-        ...prev,
-        name: userData.name || '',
-        age: userData.age || 0,
-        gender: userData.gender || '',
-        bio: userData.bio || '',
-        location: userData.location || '',
-        profilePhoto: profilePhoto,
-      }));
     } catch (err: any) {
-      console.error('Profile update error:', err);
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      console.error('Update error:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to update profile';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const data = new FormData();
+        data.append('file', file);
+        data.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+        data.append('folder', 'dating-app/profiles');
+
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          { method: 'POST', body: data }
+        );
+        if (!res.ok) throw new Error('Upload failed');
+        return res.json();
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const newPhotos = [...formData.photos, ...results.map(r => r.secure_url)].slice(0, 6);
+
+      await userAPI.updateProfile({ photos: newPhotos });
+      setFormData(prev => ({ ...prev, photos: newPhotos }));
+
+      toast({ title: 'Success', description: 'Photos uploaded successfully' });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload photos',
+        variant: 'destructive',
+      });
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -210,114 +202,105 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header with Back Button */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center">
-          <button
-            onClick={() => navigate(-1)}
-            className="mr-4 p-2 hover:bg-gray-100 rounded-full transition"
-            title="Go back"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
-          <h1 className="text-xl font-semibold text-gray-900">My Profile</h1>
-        </div>
-      </header>
-      
-      <div className="py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          {/* Header */}
-          <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200">
-            <div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900">My Profile</h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                {isEditing ? 'Edit your profile information' : 'Your personal details'}
-              </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">{formData.name}, {formData.age}</h1>
+            {formData.location && <p className="text-gray-600">{formData.location}</p>}
+          </div>
+          {!isEditing ? (
+            <Button variant="secondary" onClick={() => setIsEditing(true)} className="flex items-center gap-2">
+              <Edit className="h-4 w-4" /> Edit Profile
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting} loading={isSubmitting}>
+                Save Changes
+              </Button>
             </div>
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </button>
-            ) : (
-              <div className="space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="profile-form"
-                  disabled={isSubmitting}
-                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                    isSubmitting 
-                      ? 'bg-purple-400' 
-                      : 'bg-purple-600 hover:bg-purple-700'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <ProfileBasicInfo
+            name={formData.name}
+            email={formData.email || ''}
+            age={formData.age}
+            gender={formData.gender}
+            location={formData.location}
+            lookingFor={formData.preferences?.lookingFor}
+            interestedIn={formData.preferences?.interestedIn}
+            isEditing={isEditing}
+            onUpdate={(updates) => {
+              if (updates.preferences) {
+                setFormData({
+                  ...formData,
+                  preferences: {
+                    ...formData.preferences,
+                    ...updates.preferences
+                  }
+                });
+              } else {
+                setFormData({ ...formData, ...updates });
+              }
+            }}
+          />
+
+          <ProfileAbout
+            bio={formData.bio || ''}
+            isEditing={isEditing}
+            onChange={(bio: string) => setFormData({ ...formData, bio })}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Photos</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {formData.photos?.map((photo, index) => (
+              <div key={index} className="relative group">
+                <img
+                  src={photo}
+                  alt={`${formData.name}'s photo ${index + 1}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                {isEditing && (
+                  <button
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      const updatedPhotos = formData.photos.filter((_, i) => i !== index);
+                      setFormData({ ...formData, photos: updatedPhotos });
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {index === 0 && (
+                  <span className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                    Main Photo
+                  </span>
+                )}
               </div>
+            ))}
+
+            {isEditing && formData.photos?.length < 6 && (
+              <label className="border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 h-48">
+                <Plus className="h-8 w-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">Add Photo</p>
+                <p className="text-xs text-gray-400">
+                  {6 - (formData.photos?.length || 0)} remaining
+                </p>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                />
+              </label>
             )}
           </div>
-
-          {/* Profile Content */}
-          <div className="px-4 py-5 sm:p-6">
-            {error && <Alert type="error" message={error} />}
-            {success && <Alert type="success" message={success} />}
-
-            <form id="profile-form" onSubmit={handleSubmit} className="space-y-6">
-              <ProfileHeader
-                name={formData.name}
-                age={formData.age}
-                profilePhoto={formData.profilePhoto}
-                isEditing={isEditing}
-                onNameChange={(name) => setFormData({ ...formData, name })}
-              />
-
-              <ProfileBasicInfo
-                email={userEmail}
-                gender={formData.gender}
-                age={formData.age}
-                location={formData.location || ''}
-                sexualOrientation={formData.preferences?.sexual_orientation}
-                lookingFor={formData.preferences?.looking_for}
-                isEditing={isEditing}
-                onInputChange={handleInputChange}
-              />
-
-              <ProfileAbout
-                bio={formData.bio || ''}
-                isEditing={isEditing}
-                onBioChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              />
-            </form>
-          </div>
-        </div>
         </div>
       </div>
     </div>

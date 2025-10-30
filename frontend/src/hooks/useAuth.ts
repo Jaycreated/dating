@@ -2,9 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  preferences?: {
+    lookingFor?: string;
+  };
+}
+
 interface UseAuthReturn {
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   loading: boolean;
   error: string;
@@ -42,13 +51,18 @@ export const useAuth = (): UseAuthReturn => {
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async ({ name, email, password, preferences = {} }: RegisterData) => {
     setError('');
     setSuccess('');
     setLoading(true);
 
     try {
-      const data = await authAPI.register({ name, email, password });
+      const data = await authAPI.register({ 
+        name, 
+        email, 
+        password, 
+        preferences 
+      });
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
