@@ -156,8 +156,15 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
 
   try {
     console.log(`🔍 [PAYMENT] Checking chat access for user ID: ${req.userId}`);
+    // Get user's chat access status, payment details, and plan type
     const result = await pool.query(
-      'SELECT id, has_chat_access, payment_date, payment_reference FROM users WHERE id = $1',
+      `SELECT u.id, u.has_chat_access, u.payment_date, u.payment_reference,
+              pt.metadata->>'planType' as plan_type
+       FROM users u
+       LEFT JOIN payment_transactions pt ON u.payment_reference = pt.reference
+       WHERE u.id = $1
+       ORDER BY pt.created_at DESC
+       LIMIT 1`,
       [req.userId]
     );
 
@@ -173,18 +180,54 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
     const user = result.rows[0];
     console.log(`ℹ️ [PAYMENT] User ${user.id} chat access: ${user.has_chat_access}`);
     
-    if (!user.has_chat_access) {
-      console.log(`🚫 [PAYMENT] User ${user.id} does not have chat access`);
+    // Check if user has active subscription
+    let hasValidSubscription = user.has_chat_access === true;
+    let subscriptionStatus = 'none';
+    
+    if (hasValidSubscription && user.payment_date) {
+      const paymentDate = new Date(user.payment_date);
+      const now = new Date();
+      const hoursDiff = (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60);
+      const daysDiff = hoursDiff / 24;
+      
+      // Check subscription expiration based on plan type
+      if (user.plan_type === 'daily') {
+        subscriptionStatus = 'daily';
+        if (hoursDiff > 24) {
+          hasValidSubscription = false;
+          // Update access status in database
+          await pool.query(
+            'UPDATE users SET has_chat_access = false WHERE id = $1',
+            [user.id]
+          );
+        }
+      } else if (user.plan_type === 'monthly') {
+        subscriptionStatus = 'monthly';
+        if (daysDiff > 30) {
+          hasValidSubscription = false;
+          // Update access status in database
+          await pool.query(
+            'UPDATE users SET has_chat_access = false WHERE id = $1',
+            [user.id]
+          );
+        }
+      }
+    }
+    
+    if (!hasValidSubscription) {
+      console.log(`🚫 [PAYMENT] User ${user.id} does not have valid chat access`);
       return res.status(403).json({ 
         success: false,
-        error: 'Payment required',
-        code: 'PAYMENT_REQUIRED',
-        message: 'You need to make a payment to access chat features',
+        error: 'Subscription required or expired',
+        code: 'SUBSCRIPTION_REQUIRED',
+        message: 'You need an active subscription to access chat features',
         details: {
           userId: user.id,
-          hasPaid: user.has_chat_access,
+          hasActiveSubscription: false,
+          subscriptionStatus,
           lastPaymentDate: user.payment_date,
-          paymentReference: user.payment_reference
+          paymentReference: user.payment_reference,
+          planType: user.plan_type
         }
       });
     }
