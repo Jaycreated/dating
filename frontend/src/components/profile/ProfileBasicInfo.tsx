@@ -1,4 +1,4 @@
-import { Mail, User, Calendar, MapPin, Heart } from 'lucide-react';
+import { Mail, User, MapPin, Heart } from 'lucide-react';
 import { Input } from '../forms/Input';
 
 interface ProfileBasicInfoProps {
@@ -6,7 +6,7 @@ interface ProfileBasicInfoProps {
   email: string;
   gender: string;
   age: number | string;
-  location: string;
+  location?: string;
   lookingFor?: string;
   interestedIn?: string;
   isEditing: boolean;
@@ -112,35 +112,14 @@ export const ProfileBasicInfo = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-500">Gender</label>
-          {isEditing ? (
-            <select
-              name="gender"
-              value={gender}
-              onChange={handleInputChange}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md border"
-              required
-            >
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer-not-to-say">Prefer not to say</option>
-            </select>
-          ) : (
-            <div className="mt-1 flex items-center text-gray-900">
-              <User className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />
-              <span className="capitalize">{gender || 'Not specified'}</span>
-            </div>
-          )}
+        
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-500">Age</label>
           {isEditing ? (
             <Input
               type="number"
               name="age"
-              label="Age"
+              label='Age'
               value={age || ''}
               onChange={handleInputChange}
               min="18"
@@ -149,20 +128,17 @@ export const ProfileBasicInfo = ({
             />
           ) : (
             <div className="mt-1 flex items-center text-gray-900">
-              <Calendar className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />
-              <span>{age || 'Not specified'}</span>
+            
             </div>
           )}
         </div>
         {renderField('I Am', lookingFor || '', <User className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />, 'lookingFor')}
         {renderField('Interested In', interestedIn || '', <Heart className="flex-shrink-0 mr-2 h-5 w-5 text-gray-400" />, 'interestedIn')}
         <div>
-          <label className="block text-sm font-medium text-gray-500">Location</label>
           {isEditing ? (
             <Input
               type="text"
               name="location"
-              label="Location"
               value={location || ''}
               onChange={handleInputChange}
               placeholder="Enter your location"

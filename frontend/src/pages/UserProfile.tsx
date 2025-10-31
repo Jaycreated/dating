@@ -5,6 +5,7 @@ import { userAPI } from '../services/api';
 import { ProfileBasicInfo } from '../components/profile/ProfileBasicInfo';
 import { ProfileAbout } from '../components/profile/ProfileAbout';
 import { useToast } from '../components/ui/use-toast';
+import { User } from 'lucide-react';
 
 interface UserProfileData {
   id: number;
@@ -67,6 +68,7 @@ const UserProfile = () => {
         const profilePhoto = userData.photos?.[0] || userData.profilePhoto || userData.avatar || '';
 
         setFormData({
+          id: userData.id || 0,
           email: userData.email || '',
           name: userData.name || '',
           age: userData.age || 0,
@@ -205,9 +207,28 @@ const UserProfile = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">{formData.name}, {formData.age}</h1>
-            {formData.location && <p className="text-gray-600">{formData.location}</p>}
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+              {formData.photos ? (
+                <img
+                  src={formData.photos}
+                  alt={`${formData.name}'s profile`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                  <User className="w-8 h-8 text-gray-500" />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div>              <h1 className="text-3xl font-bold">{formData.name}, {formData.age}</h1>
+</div>
+              <div>{formData.location && <p className="text-gray-600">{formData.location}</p>}</div>
+
+            </div>
+
           </div>
           {!isEditing ? (
             <Button variant="secondary" onClick={() => setIsEditing(true)} className="flex items-center gap-2">
@@ -251,7 +272,7 @@ const UserProfile = () => {
           <ProfileAbout
             bio={formData.bio || ''}
             isEditing={isEditing}
-            onChange={(bio: string) => setFormData({ ...formData, bio })}
+            onBioChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, bio: e.target.value })}
           />
         </div>
 

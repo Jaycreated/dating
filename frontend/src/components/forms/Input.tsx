@@ -2,7 +2,7 @@ import { InputHTMLAttributes, forwardRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   error?: string;
   icon?: React.ReactNode;
 }
