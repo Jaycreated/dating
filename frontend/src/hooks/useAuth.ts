@@ -39,8 +39,12 @@ export const useAuth = (): UseAuthReturn => {
       
       setSuccess('Login successful! Redirecting...');
       
+      // Check if this is the first login by looking at the last_login timestamp
+      // or any other indicator of first login
+      const isFirstLogin = !data.user?.last_login; // Assuming last_login is set after first login
+      
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(isFirstLogin ? '/dashboard' : '/swipe');
       }, 1000);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Login failed. Please try again.';

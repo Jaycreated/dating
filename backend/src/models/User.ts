@@ -65,6 +65,22 @@ export class UserModel {
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
+  static async updateLastLogin(userId: number): Promise<User> {
+    const result = await pool.query(
+      `UPDATE users 
+       SET last_login = CURRENT_TIMESTAMP 
+       WHERE id = $1 
+       RETURNING *`,
+      [userId]
+    );
+    
+    if (!result.rows[0]) {
+      throw new Error('User not found');
+    }
+    
+    return result.rows[0];
+  }
+
   static async getPotentialMatches(
     userId: number,
     preferences: any = {}

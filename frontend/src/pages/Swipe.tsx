@@ -240,6 +240,7 @@ const Swipe = () => {
             <span className="text-2xl font-bold text-gray-900">Pairfect</span>
           </div>
 
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/chats')}
@@ -259,6 +260,10 @@ const Swipe = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+       <div className='flex flex-col justify-center items-center'>
+         <h2 className='text-xl font-bold'>Discover People around you</h2>
+         <p className='text-sm font-sm'>Keep swiping to find your match</p>
+       </div>
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-center">
             {error}

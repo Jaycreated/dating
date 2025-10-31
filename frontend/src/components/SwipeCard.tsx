@@ -24,18 +24,17 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
   const navigate = useNavigate();
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent navigation if user is trying to drag/swipe
     if (isDragging) {
       e.preventDefault();
       return;
     }
-    // Navigate to the user's public profile
     navigate(`/profile/${user.id}`);
   };
 
-  const photos = user.photos && user.photos.length > 0 
-    ? user.photos 
-    : ['https://via.placeholder.com/400x600?text=No+Photo'];
+  const photos =
+    user.photos && user.photos.length > 0
+      ? user.photos
+      : ['https://via.placeholder.com/400x600?text=No+Photo'];
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -53,7 +52,6 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
     if (!isDragging) return;
     setIsDragging(false);
 
-    // If dragged far enough, trigger action
     if (Math.abs(dragOffset.x) > 100) {
       if (dragOffset.x > 0) {
         onLike();
@@ -62,15 +60,14 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
       }
     }
 
-    // Reset position
     setDragOffset({ x: 0, y: 0 });
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
-    setDragStart({ 
-      x: e.touches[0].clientX, 
-      y: e.touches[0].clientY 
+    setDragStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
     });
   };
 
@@ -98,11 +95,15 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
 
   return (
     <div className="relative w-full max-w-sm mx-auto">
+      {/* Swipeable Card */}
       <div
-        className="relative bg-white rounded-3xl shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        className="relative bg-white shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none w-full"
         style={{
+          height: 400,
+          borderRadius: 24,
+          padding: 10,
+          opacity: 1,
           transform: `translateX(${dragOffset.x}px) translateY(${dragOffset.y}px) rotate(${rotation}deg)`,
-          opacity: opacity,
           transition: isDragging ? 'none' : 'all 0.3s ease-out',
         }}
         onMouseDown={handleMouseDown}
@@ -115,8 +116,8 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
         onClick={handleCardClick}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && handleCardClick(e as any)}
       >
+
         {/* Photo */}
         <div className="relative h-[500px]">
           <img
@@ -132,17 +133,14 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
               {photos.map((_, index) => (
                 <div
                   key={index}
-                  className={`h-1 flex-1 rounded-full transition-all ${
-                    index === currentPhotoIndex
-                      ? 'bg-white'
-                      : 'bg-white/40'
-                  }`}
+                  className={`h-1 flex-1 rounded-full transition-all ${index === currentPhotoIndex ? 'bg-white' : 'bg-white/40'
+                    }`}
                 />
               ))}
             </div>
           )}
 
-          {/* Photo navigation */}
+          {/* Navigation zones */}
           {photos.length > 1 && (
             <>
               <button
@@ -156,51 +154,6 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
                 aria-label="Next photo"
               />
             </>
-          )}
-
-          {/* Gradient overlay */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 to-transparent" />
-        </div>
-
-        {/* User Info - Wrapped in a clickable div that navigates to profile */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 p-6 text-white cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering the parent's onClick
-            navigate(`/profile/${user.id}`);
-          }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && navigate(`/profile/${user.id}`)}
-        >
-          <h2 className="text-3xl font-bold mb-2">
-            {user.name}, {user.age}
-          </h2>
-
-          {user.location && (
-            <div className="flex items-center gap-2 text-sm mb-2">
-              <MapPin className="w-4 h-4" />
-              <span>{user.location}</span>
-            </div>
-          )}
-
-          {user.bio && (
-            <p className="text-sm opacity-90 line-clamp-2 mb-3">
-              {user.bio}
-            </p>
-          )}
-
-          {user.interests && user.interests.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {user.interests.slice(0, 3).map((interest, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs"
-                >
-                  {interest}
-                </span>
-              ))}
-            </div>
           )}
         </div>
 
@@ -221,22 +174,51 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
         )}
       </div>
 
+      {/* User Info - Now below the card */}
+      <div
+        className="p-6 mt-16px cursor-pointer"
+        onClick={() => navigate(`/profile/${user.id}`)}
+      >
+        <h2 className="text-xl font-bold mb-1 text-[#651B55]">
+          {user.name}, {user.age}
+        </h2>
+
+        {user.location && (
+          <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
+            <MapPin className="w-4 h-4" />
+            <span>{user.location}</span>
+          </div>
+        )}
+
+       
+        {user.interests && user.interests.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {user.interests.slice(0, 3).map((interest, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-xs"
+              >
+                {interest}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Action Buttons */}
-      <div className="flex justify-center gap-6 mt-8">
+      <div className="flex justify-between mt-6">
         <button
           onClick={onPass}
-          className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 border-red-500"
-          aria-label="Pass"
+          className="w-[56px] h-[56px] p-[16px] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 bg-[#E03131]"
         >
           <X className="w-8 h-8 text-red-500" />
         </button>
 
         <button
           onClick={onLike}
-          className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 border-green-500"
-          aria-label="Like"
+          className="w-[56px] h-[56px] p-[16px] bg-[#FFCFF4] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2"
         >
-          <Heart className="w-8 h-8 text-green-500" />
+          <Heart className="w-8 h-8 " />
         </button>
       </div>
     </div>

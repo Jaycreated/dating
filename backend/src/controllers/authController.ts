@@ -73,8 +73,11 @@ export class AuthController {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d'
       });
 
+      // Update last_login timestamp
+      const updatedUser = await UserModel.updateLastLogin(user.id);
+      
       // Remove password from response
-      const { password_hash, ...userWithoutPassword } = user;
+      const { password_hash, ...userWithoutPassword } = updatedUser;
 
       res.json({
         message: 'Login successful',
