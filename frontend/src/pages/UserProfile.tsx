@@ -229,7 +229,7 @@ const UserProfile = () => {
   // 🔹 MAIN RENDER
   // ===============================
   return (
-    <div className="mx-[20px] md:mx-auto py-8">
+    <div className="mx-[20px] md:mx-20px py-8">
       {/* Header */}
       <h2 className="font-bold text-xl mb-4">My Profile</h2>
 
@@ -317,7 +317,7 @@ const UserProfile = () => {
         </div>
 
         {/* Bio Section */}
-        <div className="space-y-6 w-full">
+        <div className="space-y-6 w-full mx-auto">
           <ProfileAbout
             bio={formData.bio || ''}
             isEditing={isEditing}

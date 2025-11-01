@@ -321,7 +321,7 @@ const Chat = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      {/* <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
           <button
             onClick={() => navigate('/matches')}
@@ -346,7 +346,7 @@ const Chat = () => {
             </div>
           )}
         </div>
-      </header>
+      </header> */}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 max-w-4xl mx-auto w-full">
