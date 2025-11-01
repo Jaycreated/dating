@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, MapPin, Plus, X, Settings } from 'lucide-react';
+import { Edit, MapPin, Plus, X, Settings, User } from 'lucide-react';
 import { Button } from '../components/forms/Button';
 import { userAPI } from '../services/api';
 import { ProfileBasicInfo } from '../components/profile/ProfileBasicInfo';
 import { ProfileAbout } from '../components/profile/ProfileAbout';
 import { useToast } from '../components/ui/use-toast';
-import { User } from 'lucide-react';
 
 interface UserProfileData {
   id: number;
@@ -18,18 +17,23 @@ interface UserProfileData {
   location?: string;
   photos: string[];
   preferences?: {
-    looking_for?: string;
+    lookingFor?: string;
+    interestedIn?: string;
     [key: string]: any;
   };
 }
 
 const UserProfile = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // --- Component State ---
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [_error, setError] = useState<string>('');
 
+  // --- Initial form data ---
   const [formData, setFormData] = useState<UserProfileData>({
     id: 0,
     name: '',
@@ -42,15 +46,16 @@ const UserProfile = () => {
     preferences: {},
   });
 
-  const { toast } = useToast();
-
-  // Fetch user profile
+  // ===============================
+  // 🔹 FETCH USER PROFILE
+  // ===============================
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
         setError('');
 
+        // Load stored user data (from login, etc.)
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const user = JSON.parse(storedUser);
@@ -65,10 +70,14 @@ const UserProfile = () => {
           }));
         }
 
+        // Fetch latest data from API
         const response = await userAPI.getProfile();
         const userData = response.user || response;
+
+        // Normalize and handle missing photo fields
         const profilePhoto = userData.photos?.[0] || userData.profilePhoto || userData.avatar || '';
 
+        // Set data into state
         setFormData({
           id: userData.id || 0,
           email: userData.email || '',
@@ -81,13 +90,17 @@ const UserProfile = () => {
           preferences: userData.preferences || {},
         });
 
+        // Update localStorage with fresh data
         if (storedUser) {
           const user = JSON.parse(storedUser);
-          localStorage.setItem('user', JSON.stringify({
-            ...user,
-            ...userData,
-            profilePhoto: profilePhoto,
-          }));
+          localStorage.setItem(
+            'user',
+            JSON.stringify({
+              ...user,
+              ...userData,
+              profilePhoto,
+            })
+          );
         }
       } catch (err: any) {
         console.error('Profile fetch error:', err);
@@ -100,6 +113,9 @@ const UserProfile = () => {
     fetchProfile();
   }, []);
 
+  // ===============================
+  // 🔹 VALIDATION HELPER
+  // ===============================
   const validateForm = (): boolean => {
     if (!formData.name?.trim()) {
       setError('Name is required');
@@ -112,6 +128,9 @@ const UserProfile = () => {
     return true;
   };
 
+  // ===============================
+  // 🔹 HANDLE SUBMIT (SAVE CHANGES)
+  // ===============================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -120,27 +139,20 @@ const UserProfile = () => {
     try {
       setIsSubmitting(true);
 
-      // Create a new object with only the fields we want to send
-      const updateData = { ...formData };
-
-      // Ensure we're not sending empty strings for optional fields
-      const cleanUpdateData = Object.entries(updateData).reduce((acc, [key, value]) => {
-        if (value !== '') {
-          acc[key] = value;
-        }
+      // Remove empty fields before sending
+      const cleanUpdateData = Object.entries(formData).reduce((acc, [key, value]) => {
+        if (value !== '') acc[key] = value;
         return acc;
       }, {} as Record<string, any>);
 
+      // Update user profile through API
       const updatedProfile = await userAPI.updateProfile(cleanUpdateData);
 
+      // Update local storage with new data
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         const user = JSON.parse(storedUser);
-        const updatedUser = {
-          ...user,
-          ...updatedProfile,
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem('user', JSON.stringify({ ...user, ...updatedProfile }));
       }
 
       toast({ title: 'Success', description: 'Profile updated successfully!' });
@@ -159,12 +171,16 @@ const UserProfile = () => {
     }
   };
 
+  // ===============================
+  // 🔹 HANDLE PHOTO UPLOAD
+  // ===============================
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
 
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
+      // Upload photos to Cloudinary
+      const uploadPromises = Array.from(files).map(async file => {
         const data = new FormData();
         data.append('file', file);
         data.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
@@ -181,6 +197,7 @@ const UserProfile = () => {
       const results = await Promise.all(uploadPromises);
       const newPhotos = [...formData.photos, ...results.map(r => r.secure_url)].slice(0, 6);
 
+      // Save uploaded photo URLs to user profile
       await userAPI.updateProfile({ photos: newPhotos });
       setFormData(prev => ({ ...prev, photos: newPhotos }));
 
@@ -197,6 +214,9 @@ const UserProfile = () => {
     }
   };
 
+  // ===============================
+  // 🔹 LOADING SPINNER
+  // ===============================
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -205,109 +225,123 @@ const UserProfile = () => {
     );
   }
 
+  // ===============================
+  // 🔹 MAIN RENDER
+  // ===============================
   return (
-    <div className="mx-[20px] md:mx-au py-8">
-                <h2 className='font-bold text-xl mb-4'>My Profile</h2>
+    <div className="mx-[20px] md:mx-auto py-8">
+      {/* Header */}
+      <h2 className="font-bold text-xl mb-4">My Profile</h2>
 
+      {/* Profile Info Section */}
       <div className="space-y-6 mx-auto flex flex-col justify-center items-center">
-        <div className="flex justify-between lg:w-[500px]">
-          <div className="">
-        <div className='flex gap-[20px]'>
-           <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-              {formData.photos ? (
-                <img
-                  src={formData.photos}
-                  alt={`${formData.name}'s profile`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                  <User className="w-8 h-8 text-gray-500" />
+        <div className="flex justify-between w-full lg:w-[500px]">
+          {/* Profile Info (left side) */}
+          <div className='w-full'>
+            <div className={isEditing ? 'space-y-4' : 'flex gap-[20px]'}>
+              <div className={isEditing ? 'flex flex-col items-center' : 'flex gap-[20px]'}>
+                {/* Profile Photo */}
+                <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                  {formData.photos?.length > 0 ? (
+                    <img
+                      src={formData.photos[0]}
+                      alt={`${formData.name}'s profile`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                      <User className="w-8 h-8 text-gray-500" />
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Basic Info (name, age, location) */}
+                <div className={isEditing ? 'w-full' : 'flex flex-col justify-center'}>
+                  {!isEditing && (
+                    <div>
+                      <h1 className="text-xl font-bold text-[#651B55]">
+                        {formData.name}, {formData.age}
+                      </h1>
+                    </div>
+                  )}
+
+                  {!isEditing && formData.location && (
+                    <div className="flex items-center">
+                      <MapPin className="flex-shrink-0 mr-2 h-5 w-5 text-[#651B55]" />
+                      <p className="text-sm font-semibold text-[#651B55]">{formData.location}</p>
+                    </div>
+                  )}
+
+                  {/* Editable Basic Info Section */}
+                  <ProfileBasicInfo
+                    name={formData.name}
+                    email={formData.email || ''}
+                    age={formData.age}
+                    gender={formData.gender}
+                    location={formData.location}
+                    lookingFor={formData.preferences?.lookingFor}
+                    interestedIn={formData.preferences?.interestedIn}
+                    isEditing={isEditing}
+                    onUpdate={updates => {
+                      if (updates.preferences) {
+                        setFormData({
+                          ...formData,
+                          preferences: { ...formData.preferences, ...updates.preferences },
+                        });
+                      } else {
+                        setFormData({ ...formData, ...updates });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-             <div className=" items-center justify-center gap-4">
-              <div>             
-                 <h1 className="text-xl font-bold text-[#651B55]">{formData.name}, {formData.age}</h1>
-              </div>
-              <div>
-                 <div className='flex'>
-                  <MapPin className="flex-shrink-0 mr-2 h-5 w-5 text-[#651B55]" />
-
-                {formData.location && <p className="text-sm font-semibold text-[#651B55]">{formData.location}</p>}
-              </div>
-
-                 <ProfileBasicInfo
-            name={formData.name}
-            email={formData.email || ''}
-            age={formData.age}
-            gender={formData.gender}
-            location={formData.location}
-            lookingFor={formData.preferences?.lookingFor}
-            interestedIn={formData.preferences?.interestedIn}
-            isEditing={isEditing}
-            onUpdate={(updates) => {
-              if (updates.preferences) {
-                setFormData({
-                  ...formData,
-                  preferences: {
-                    ...formData.preferences,
-                    ...updates.preferences
-                  }
-                });
-              } else {
-                setFormData({ ...formData, ...updates });
-              }
-            }}
-           />
-              </div>
-
-            </div>
-           
-
-        </div>
-        
           </div>
-          <div className='flex gap-[8px]'>
+
+          {/* Edit & Settings Icons (right side) */}
+          <div className="flex gap-[8px]">
             {!isEditing && (
               <div className="cursor-pointer" onClick={() => navigate('/settings')}>
-                <Settings className="h-[24px] w-[24px] text-[#651B55]"/>
+                <Settings className="h-[24px] w-[24px] text-[#651B55]" />
               </div>
             )}
-
             {!isEditing && (
               <div>
-                <Edit 
-                  className="h-[24px] w-[24px] text-[#651B55]"  
+                <Edit
+                  className="h-[24px] w-[24px] text-[#651B55]"
                   onClick={() => setIsEditing(true)}
                 />
               </div>
             )}
-            <div>
-
-            </div>
-
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* Bio Section */}
+        <div className="space-y-6 w-full">
           <ProfileAbout
             bio={formData.bio || ''}
             isEditing={isEditing}
-            onBioChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, bio: e.target.value })}
+            onBioChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setFormData({ ...formData, bio: e.target.value })
+            }
           />
         </div>
 
-        <div className="space-y-4 ">
+        {/* Photos Section */}
+        <div className="space-y-4">
           <h2 className="text-xl font-semibold">Photos</h2>
-          <div className="md:flex gap-[16px] justify-center shadow-sm">
+
+<div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] justify-center shadow-sm w-full">
+            {/* Show each uploaded photo */}
             {formData.photos?.map((photo, index) => (
               <div key={index} className="relative group">
                 <img
                   src={photo}
                   alt={`${formData.name}'s photo ${index + 1}`}
-                  className="w-full h-48 object-contain rounded-lg"
+                  className="w-48 h-48 object-cover rounded-lg"
                 />
+
+                {/* Delete button when editing */}
                 {isEditing && (
                   <button
                     className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -319,6 +353,8 @@ const UserProfile = () => {
                     <X className="h-4 w-4" />
                   </button>
                 )}
+
+                {/* Main photo badge */}
                 {index === 0 && (
                   <span className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
                     Main Photo
@@ -327,8 +363,9 @@ const UserProfile = () => {
               </div>
             ))}
 
+            {/* Upload new photo (only in edit mode) */}
             {isEditing && formData.photos?.length < 6 && (
-              <label className="border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 h-48">
+              <label className="border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 h-48 w-48">
                 <Plus className="h-8 w-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-500">Add Photo</p>
                 <p className="text-xs text-gray-400">
@@ -346,24 +383,20 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
-      {/* Bottom buttons for edit mode */}
+
+      {/* Save / Cancel Buttons (Edit mode) */}
       {isEditing && (
         <div className="mt-8 border-t border-gray-200 pt-6">
-          <div className="flex justify-end gap-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsEditing(false)} 
-              disabled={isSubmitting}
-            >
+          <div className="flex justify-center gap-4">
+            <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isSubmitting} className='rounded-[24px]'>
               Cancel
             </Button>
-            <Button 
-              className="bg-[#651B55] hover:bg-[#4f1550]"
-              onClick={handleSubmit} 
-              disabled={isSubmitting} 
-              loading={isSubmitting}
+            <Button
+              className="bg-[#651B55] hover:bg-[#4f1550] rounded-[24px]"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
             >
-              Save Changes
+              {isSubmitting ? 'Updating...' : 'Update Changes'}
             </Button>
           </div>
         </div>
