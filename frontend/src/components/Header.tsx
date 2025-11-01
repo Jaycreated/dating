@@ -227,10 +227,15 @@ export const Header = () => {
                                         setUnreadCount(prev => Math.max(0, prev - 1));
                                       }
                                       
+                                      // Close the notification dropdown
+                                      setIsNotificationOpen(false);
+                                      
                                       // Navigate based on notification type
                                       if (notification.type === 'like' || notification.type === 'match') {
-                                        navigate(`/user/${notification.from_user_id}`);
-                                        setIsNotificationOpen(false);
+                                        // Use a small timeout to ensure the dropdown is closed before navigation
+                                        setTimeout(() => {
+                                          navigate(`/profile/${notification.from_user_id}`);
+                                        }, 100);
                                       }
                                     } catch (error) {
                                       console.error('Error handling notification click:', error);
@@ -389,9 +394,14 @@ export const Header = () => {
                                         setUnreadCount(prev => Math.max(0, prev - 1));
                                       }
                                       
+                                      // Close the notification dropdown
+                                      setIsNotificationOpen(false);
+                                      
                                       if (notification.type === 'like' || notification.type === 'match') {
-                                        navigate(`/user/${notification.from_user_id}`);
-                                        setIsNotificationOpen(false);
+                                        // Use a small timeout to ensure the dropdown is closed before navigation
+                                        setTimeout(() => {
+                                          navigate(`/profile/${notification.from_user_id}`);
+                                        }, 100);
                                       }
                                     } catch (error) {
                                       console.error('Error handling notification click:', error);
