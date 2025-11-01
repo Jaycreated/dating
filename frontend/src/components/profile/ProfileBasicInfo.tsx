@@ -134,7 +134,7 @@ export const ProfileBasicInfo = ({
       {/* Email (no label, just icon + value) */}
       <div className="mt-1 flex items-center text-gray-900">
         <Mail className="mr-2 h-5 w-5 text-[#651B55]" />
-        <span className="truncate">{email}</span>
+        <span className="truncate text-sm font-semibold">{email}</span>
       </div>
     </div>
   );

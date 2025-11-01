@@ -206,11 +206,12 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="mx-auto py-8">
+    <div className="mx-[20px] md:mx-au py-8">
+                <h2 className='font-bold text-xl mb-4'>My Profile</h2>
+
       <div className="space-y-6 mx-auto flex flex-col justify-center items-center">
         <div className="flex justify-between lg:w-[500px]">
           <div className="">
-
         <div className='flex gap-[20px]'>
            <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
               {formData.photos ? (
@@ -233,7 +234,7 @@ const UserProfile = () => {
                  <div className='flex'>
                   <MapPin className="flex-shrink-0 mr-2 h-5 w-5 text-[#651B55]" />
 
-                {formData.location && <p className="text-[#651B55]">{formData.location}</p>}
+                {formData.location && <p className="text-sm font-semibold text-[#651B55]">{formData.location}</p>}
               </div>
 
                  <ProfileBasicInfo
@@ -274,18 +275,14 @@ const UserProfile = () => {
               </div>
             )}
 
-            {!isEditing ? (
-            <div>
-              <Edit className="h-[24px] w-[24px] text-[#651B55]"  onClick={() => setIsEditing(true)}/>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isSubmitting}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting} loading={isSubmitting}>
-                Save Changes
-              </Button>
-            </div>
-          )}
+            {!isEditing && (
+              <div>
+                <Edit 
+                  className="h-[24px] w-[24px] text-[#651B55]"  
+                  onClick={() => setIsEditing(true)}
+                />
+              </div>
+            )}
             <div>
 
             </div>
@@ -303,13 +300,13 @@ const UserProfile = () => {
 
         <div className="space-y-4 ">
           <h2 className="text-xl font-semibold">Photos</h2>
-          <div className="flex gap-[16px] justify-center shadow-sm">
+          <div className="md:flex gap-[16px] justify-center shadow-sm">
             {formData.photos?.map((photo, index) => (
               <div key={index} className="relative group">
                 <img
                   src={photo}
                   alt={`${formData.name}'s photo ${index + 1}`}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-48 object-contain rounded-lg"
                 />
                 {isEditing && (
                   <button
@@ -349,6 +346,28 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
+      {/* Bottom buttons for edit mode */}
+      {isEditing && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <div className="flex justify-end gap-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsEditing(false)} 
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="bg-[#651B55] hover:bg-[#4f1550]"
+              onClick={handleSubmit} 
+              disabled={isSubmitting} 
+              loading={isSubmitting}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
