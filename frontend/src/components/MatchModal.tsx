@@ -79,14 +79,14 @@ const MatchModal = ({ matchedUser, onClose }: MatchModalProps) => {
           <div className="space-y-3">
             <button
               onClick={handleChatClick}
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-3 px-6 rounded-full transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-[#651B55] text-white font-medium py-3 px-6 rounded-[24px] flex items-center justify-center space-x-2"
             >
               <MessageCircle size={20} />
               <span>Say Hello</span>
             </button>
             <button
               onClick={onClose}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-full transition-colors"
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-[24px]"
             >
               Keep Swiping
             </button>

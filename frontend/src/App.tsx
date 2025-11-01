@@ -77,6 +77,7 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
             <Route path="/swipe" element={<ProtectedRoute element={<Swipe />} />} />
             <Route path="/matches" element={<ProtectedRoute element={<Matches />} />} />
+            <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
             <Route path="/chats" element={<ProtectedRoute element={<ChatList />} />} />
             <Route path="/chat/:matchId" element={<ProtectedRoute element={<Chat />} />} />
             <Route path="/profile" element={<ProtectedRoute element={<UserProfile />} />} />

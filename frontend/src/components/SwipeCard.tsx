@@ -21,13 +21,17 @@ interface SwipeCardProps {
 }
 
 export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
+  console.log('=== SWIPE CARD RENDER ===');
   console.log('SwipeCard user data:', {
     id: user.id,
     name: user.name,
     location: user.location,
     interests: user.interests,
+    hasPhotos: user.photos && user.photos.length > 0,
+    photoCount: user.photos?.length || 0,
     allProps: user
   });
+  console.log('Component props:', { onLike, onPass });
   
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -36,11 +40,27 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
   const navigate = useNavigate();
 
   const handleCardClick = (e: React.MouseEvent) => {
+    console.log('=== CARD CLICK EVENT ===');
+    console.log('User ID:', user.id);
+    console.log('Is dragging:', isDragging);
+    console.log('Event target:', e.target);
+    
     if (isDragging) {
+      console.log('Preventing navigation due to drag action');
       e.preventDefault();
       return;
     }
-    navigate(`/profile/${user.id}`);
+    
+    console.log('Attempting to navigate to profile with ID:', user.id);
+    console.log('Current path:', window.location.pathname);
+    console.log('Navigation target URL:', `/profile/${user.id}`);
+    
+    try {
+      navigate(`/profile/${user.id}`);
+      console.log('Navigation initiated successfully');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const photos =
