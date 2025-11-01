@@ -96,7 +96,7 @@ const UploadPhotos = () => {
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Title */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl font-[26px] text-gray-900 mb-2">
             Add your first 2 photos
           </h1>
           <p className="text-gray-600">
@@ -109,7 +109,7 @@ const UploadPhotos = () => {
           {error && <Alert type="error" message={error} />}
 
           {/* Photo Upload Boxes */}
-          <div className="flex justify-center gap-6">
+          <div className="flex justify-center md:gap-6 gap-2">
             {[0, 1].map((index) => (
               <div key={index} className="relative">
                 <input
@@ -122,7 +122,7 @@ const UploadPhotos = () => {
 
                 {photos[index] ? (
                   // Show uploaded photo
-                  <div className="relative w-48 h-64 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-md group">
+                  <div className="relative md:w-48 w-36/dash md:h-64 h-48 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-md group">
                     <img
                       src={photos[index]}
                       alt={`Upload ${index + 1}`}

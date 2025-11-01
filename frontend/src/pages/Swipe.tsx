@@ -113,9 +113,11 @@ const Swipe = () => {
       
       const matches = response.matches || [];
       console.log(`📊 [FRONTEND] Found ${matches.length} potential matches`);
+      console.log('📦 [FRONTEND] Raw matches data:', JSON.stringify(matches, null, 2));
       
       // Parse JSON fields if they're strings
       const parsedMatches = matches.map((match: any, index: number) => {
+        console.log(`🔍 [MATCH-${index}] Raw match data:`, JSON.stringify(match, null, 2));
         try {
           const parsed = {
             ...match,

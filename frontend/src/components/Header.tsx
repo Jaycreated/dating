@@ -54,7 +54,7 @@ export const Header = () => {
                   alt="Pairfect Logo"
                   className="h-10 w-auto"
                 />
-                <span className="ml-2 text-xl font-semibold text-[#000000] hidden sm:block">
+                <span className="ml-2 text-xl font-semibold text-black hidden sm:block">
                   Pairfect
                 </span>
               </Link>
@@ -131,80 +131,108 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden">
-          <div className="pt-2 pb-3 space-y-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                  location.pathname === item.path
-                    ? 'bg-purple-50 border-purple-500 text-purple-700'
-                    : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <div className="flex items-center">
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {item.name}
-                </div>
-              </Link>
-            ))}
+      {/* Mobile Menu Overlay */}
+      <div
+        className={`md:hidden fixed inset-0 z-40 transition-all duration-300 ${
+          isMenuOpen ? 'visible' : 'invisible'
+        }`}
+      >
+        {/* Overlay */}
+        <div
+          className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+            isMenuOpen ? 'opacity-50' : 'opacity-0'
+          }`}
+          onClick={() => setIsMenuOpen(false)}
+        ></div>
 
-            {user ? (
-              <>
+        {/* Slide-out Menu */}
+        <div
+          className={`fixed inset-y-0 right-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-out ${
+            isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="h-full flex flex-col">
+            <div className="flex justify-end items-center p-2 border-b border-gray-200">
+              <button
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto py-2">
+              {navigation.map((item) => (
                 <Link
-                  to="/settings"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+                  key={item.name}
+                  to={item.path}
+                  className={`block px-4 py-3 mx-2 rounded-lg text-base font-medium ${
+                    location.pathname === item.path
+                      ? 'bg-purple-50 text-purple-700'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <div className="flex items-center">
-                    <Settings className="h-5 w-5 mr-3" />
-                    Settings
+                    <item.icon className="h-5 w-5 mr-3" />
+                    {item.name}
                   </div>
                 </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-red-600 hover:bg-red-50 hover:border-red-300"
-                >
-                  <div className="flex items-center">
-                    <LogOut className="h-5 w-5 mr-3" />
-                    Logout
-                  </div>
-                </button>
-              </>
-            ) : (
-              <div className="px-4 pt-2 pb-3 space-y-2">
-                <Button
-                  fullWidth
-                  variant="ghost"
-                  className="border border-gray-300"
-                  onClick={() => {
-                    navigate('/login');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  Log in
-                </Button>
-                <Button
-                  fullWidth
-                  onClick={() => {
-                    navigate('/register');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  Sign up
-                </Button>
-              </div>
-            )}
+              ))}
+
+              {user ? (
+                <div className="mt-2 border-t border-gray-100 pt-2">
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-3 mx-2 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <Settings className="h-5 w-5 mr-3" />
+                      Settings
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 mx-2 rounded-lg text-base font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <div className="flex items-center">
+                      <LogOut className="h-5 w-5 mr-3" />
+                      Logout
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <div className="px-4 pt-2 pb-3 space-y-2 mt-2 border-t border-gray-100">
+                  <Button
+                    fullWidth
+                    variant="ghost"
+                    className="border border-gray-300"
+                    onClick={() => {
+                      navigate('/login');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    fullWidth
+                    onClick={() => {
+                      navigate('/register');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Sign up
+                  </Button>
+                </div>
+              )}
+            </nav>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 };

@@ -31,7 +31,9 @@ const SelectInterests = () => {
 
     try {
       await userAPI.updateProfile({
-        preferences: { lookingFor: selectedInterest },
+        preferences: { 
+          interestedIn: selectedInterest,  
+        },
       });
 
       // Redirect to next step (step 3)

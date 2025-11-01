@@ -11,12 +11,24 @@ interface SwipeCardProps {
     location?: string;
     photos: string[];
     interests?: string[];
+    preferences?: {
+      lookingFor?: 'relationship' | 'casual' | 'hookup' | 'chat';
+      [key: string]: any;
+    };
   };
   onLike: () => void;
   onPass: () => void;
 }
 
 export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
+  console.log('SwipeCard user data:', {
+    id: user.id,
+    name: user.name,
+    location: user.location,
+    interests: user.interests,
+    allProps: user
+  });
+  
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -35,6 +47,29 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
     user.photos && user.photos.length > 0
       ? user.photos
       : ['https://via.placeholder.com/400x600?text=No+Photo'];
+      
+  // Get interest from preferences.interestedIn (fallback to lookingFor for backward compatibility)
+  const userInterest = user.preferences?.interestedIn || user.preferences?.lookingFor || '';
+  
+  // Map the interest ID to a display label
+  type InterestType = 'relationship' | 'casual' | 'hookup' | 'chat' | 'dating' | 'friends' | 'networking' | 'something_casual';
+  const interestMap: Record<InterestType, string> = {
+    relationship: 'Looking for a relationship',
+    casual: 'Casual friendship',
+    hookup: 'Looking to hookup',
+    chat: 'Chat buddy',
+    dating: 'Looking to date',
+    friends: 'Looking for friends',
+    networking: 'Networking',
+    something_casual: 'Something casual'
+  };
+  
+  const interestDisplay = interestMap[userInterest as InterestType] || '';
+  
+  console.log('Processed photos:', photos);
+  console.log('User preferences:', user.preferences);
+  console.log('User interest:', userInterest);
+  console.log('User location:', user.location);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -183,12 +218,20 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
           {user.name}, {user.age}
         </h2>
 
-        {user.location && (
-          <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
-            <MapPin className="w-4 h-4" />
-            <span>{user.location}</span>
-          </div>
-        )}
+        <div className="space-y-1">
+          {user.location && (
+            <div className="flex items-center gap-2 text-[#651B55] text-sm">
+              <MapPin className="w-4 h-4" />
+              <span>{user.location}</span>
+            </div>
+          )}
+          {interestDisplay && (
+            <div className="flex items-center gap-2 text-[#651B55] text-sm">
+              <Heart className="w-4 h-4" />
+              <span>{interestDisplay}</span>
+            </div>
+          )}
+        </div>
 
        
         {user.interests && user.interests.length > 0 && (
