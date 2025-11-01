@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Edit, Plus, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, MapPin, Plus, X, Settings } from 'lucide-react';
 import { Button } from '../components/forms/Button';
 import { userAPI } from '../services/api';
 import { ProfileBasicInfo } from '../components/profile/ProfileBasicInfo';
@@ -23,6 +24,7 @@ interface UserProfileData {
 }
 
 const UserProfile = () => {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -204,11 +206,13 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+    <div className="mx-auto py-8">
+      <div className="space-y-6 mx-auto flex flex-col justify-center items-center">
+        <div className="flex justify-between lg:w-[500px]">
+          <div className="">
+
+        <div className='flex gap-[20px]'>
+           <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
               {formData.photos ? (
                 <img
                   src={formData.photos}
@@ -221,31 +225,18 @@ const UserProfile = () => {
                 </div>
               )}
             </div>
+             <div className=" items-center justify-center gap-4">
+              <div>             
+                 <h1 className="text-xl font-bold text-[#651B55]">{formData.name}, {formData.age}</h1>
+              </div>
+              <div>
+                 <div className='flex'>
+                  <MapPin className="flex-shrink-0 mr-2 h-5 w-5 text-[#651B55]" />
 
-            <div>
-              <div>              <h1 className="text-3xl font-bold">{formData.name}, {formData.age}</h1>
-</div>
-              <div>{formData.location && <p className="text-gray-600">{formData.location}</p>}</div>
+                {formData.location && <p className="text-[#651B55]">{formData.location}</p>}
+              </div>
 
-            </div>
-
-          </div>
-          {!isEditing ? (
-            <Button variant="secondary" onClick={() => setIsEditing(true)} className="flex items-center gap-2">
-              <Edit className="h-4 w-4" /> Edit Profile
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSubmitting}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting} loading={isSubmitting}>
-                Save Changes
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <ProfileBasicInfo
+                 <ProfileBasicInfo
             name={formData.name}
             email={formData.email || ''}
             age={formData.age}
@@ -267,8 +258,42 @@ const UserProfile = () => {
                 setFormData({ ...formData, ...updates });
               }
             }}
-          />
+           />
+              </div>
 
+            </div>
+           
+
+        </div>
+        
+          </div>
+          <div className='flex gap-[8px]'>
+            {!isEditing && (
+              <div className="cursor-pointer" onClick={() => navigate('/settings')}>
+                <Settings className="h-[24px] w-[24px] text-[#651B55]"/>
+              </div>
+            )}
+
+            {!isEditing ? (
+            <div>
+              <Edit className="h-[24px] w-[24px] text-[#651B55]"  onClick={() => setIsEditing(true)}/>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting} loading={isSubmitting}>
+                Save Changes
+              </Button>
+            </div>
+          )}
+            <div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <div className="space-y-6">
           <ProfileAbout
             bio={formData.bio || ''}
             isEditing={isEditing}
@@ -276,9 +301,9 @@ const UserProfile = () => {
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 ">
           <h2 className="text-xl font-semibold">Photos</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="flex gap-[16px] justify-center shadow-sm">
             {formData.photos?.map((photo, index) => (
               <div key={index} className="relative group">
                 <img
