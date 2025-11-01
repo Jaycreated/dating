@@ -1,12 +1,14 @@
 import { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   variant?: 'primary' | 'secondary' | 'ghost';
   fullWidth?: boolean;
 }
 
 export const Button = ({
+  size,
   children,
   loading,
   variant = 'primary',

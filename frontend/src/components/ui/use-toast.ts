@@ -8,6 +8,8 @@ type ToasterToast = {
   title?: string
   description?: string
   variant?: "default" | "destructive"
+   open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const actionTypes = {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCheck, X } from 'react-icons/fi';
+import { FiCheck} from 'react-icons/fi';
 
 type Plan = {
   name: string;
