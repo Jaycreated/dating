@@ -85,12 +85,12 @@ const UploadPhotos = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100">
       {/* Header with Logo */}
-      <div className="p-6">
+      {/* <div className="p-6">
         <div className="flex items-center gap-2">
           <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
           <span className="text-xl font-bold text-gray-900">Pairfect</span>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-12">

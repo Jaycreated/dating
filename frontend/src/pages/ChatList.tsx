@@ -113,9 +113,9 @@ const ChatList = () => {
         {matches.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <MessageCircle className="w-12 h-12 text-purple-600" />
+              <MessageCircle className="w-12 h-12 text-[#651B55]" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
               No conversations yet
             </h2>
             <p className="text-gray-600 mb-6">
@@ -123,7 +123,7 @@ const ChatList = () => {
             </p>
             <button
               onClick={() => navigate('/swipe')}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
+              className="px-6 py-3 bg-[#651B55] text-[#F0F0F0] rounded-[24px] w-[349px] font-semibold"
             >
               Start Swiping
             </button>

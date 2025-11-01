@@ -59,13 +59,7 @@ const CompleteProfile = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
-            <Heart className="w-8 h-8 text-pink-500 fill-pink-500" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">Tell us about yourself</h1>
-          <p className="text-gray-600 mt-2">Help us find your perfect match</p>
-        </div>
+     ÷
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
