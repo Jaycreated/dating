@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.13",
+    "@types/react-toastify": "^4.0.2",
     "axios": "^1.6.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -20,10 +21,12 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.21.1",
+    "react-toastify": "^11.0.5",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@types/node": "^24.9.2",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
