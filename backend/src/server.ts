@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import path from 'path';
 import { initializeDatabase, pool } from './config/database';
 import { MessageModel } from './models/Message';
 
@@ -57,7 +58,6 @@ app.get('/health', (_req, res) => {
     jwtSecret: process.env.JWT_SECRET ? '***SET***' : '***MISSING***',
     databaseUrl: process.env.DATABASE_URL ? '***SET***' : '***MISSING***',
     frontendUrl: process.env.FRONTEND_URL || 'Not set, using default',
-    // Add other important environment variables here
   };
   
   res.status(200).json({ 
@@ -69,7 +69,7 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// API Routes
+// API Routes - MUST come before static file serving
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matches', matchRoutes);
@@ -77,9 +77,19 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+// Serve static files from the React frontend app
+// The path goes up two levels from dist/server.js to reach frontend/dist
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+
+// API 404 handler for undefined API routes only
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API route not found' });
+});
+
+// All other GET requests not handled by API routes return the React app
+// This enables client-side routing to work properly
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 // Error handling middleware
