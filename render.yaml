@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pairfect-backend
+    env: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Add other environment variables here
+
+  - type: web
+    name: pairfect-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: "./frontend/dist"
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://pairfect-backend.onrender.com  # Update with your backend URL
+      - key: NODE_ENV
+        value: production
