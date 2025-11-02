@@ -31,7 +31,7 @@ const Chat = () => {
   const [hasChatAccess, setHasChatAccess] = useState<boolean | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Check if user has chat access
   const checkChatAccess = useCallback(async () => {
