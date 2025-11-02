@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Trash2, Loader2 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '../forms/Button';
 import { useToast } from '../ui/use-toast';
 import { userAPI } from '../../services/api';
 
