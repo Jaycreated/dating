@@ -1,11 +1,19 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { MatchModel } from '../models/Match';
 import { NotificationModel } from '../models/Notification';
 import { UserModel } from '../models/User';
-import { AuthRequest } from '../middleware/auth';
+
+// Extend the Express Request type to include our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
 
 export class MatchController {
-  static async likeUser(req: AuthRequest, res: Response) {
+  static async likeUser(req: Request, res: Response) {
     try {
       const targetUserId = parseInt(req.params.userId);
 
@@ -48,7 +56,7 @@ export class MatchController {
     }
   }
 
-  static async passUser(req: AuthRequest, res: Response) {
+  static async passUser(req: Request, res: Response) {
     try {
       const targetUserId = parseInt(req.params.userId);
 
@@ -68,7 +76,7 @@ export class MatchController {
     }
   }
 
-  static async getMatches(req: AuthRequest, res: Response) {
+  static async getMatches(req: Request, res: Response) {
     try {
       const matches = await MatchModel.getUserMatches(req.userId!);
 

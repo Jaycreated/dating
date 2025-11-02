@@ -1,9 +1,17 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { NotificationModel } from '../models/Notification';
-import { AuthRequest } from '../middleware/auth';
+
+// Extend the Express Request type to include our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
 
 export class NotificationController {
-  static async getNotifications(req: AuthRequest, res: Response) {
+  static async getNotifications(req: Request, res: Response) {
     try {
       const notifications = await NotificationModel.getUserNotifications(req.userId!);
       res.json({ notifications });
@@ -13,7 +21,7 @@ export class NotificationController {
     }
   }
 
-  static async getUnreadCount(req: AuthRequest, res: Response) {
+  static async getUnreadCount(req: Request, res: Response) {
     try {
       const count = await NotificationModel.getUnreadCount(req.userId!);
       res.json({ count });
@@ -23,7 +31,7 @@ export class NotificationController {
     }
   }
 
-  static async markAsRead(req: AuthRequest, res: Response) {
+  static async markAsRead(req: Request, res: Response) {
     try {
       const notificationId = parseInt(req.params.id);
       await NotificationModel.markAsRead(notificationId);
@@ -34,7 +42,7 @@ export class NotificationController {
     }
   }
 
-  static async markAllAsRead(req: AuthRequest, res: Response) {
+  static async markAllAsRead(req: Request, res: Response) {
     try {
       await NotificationModel.markAllAsRead(req.userId!);
       res.json({ message: 'All notifications marked as read' });
@@ -44,7 +52,7 @@ export class NotificationController {
     }
   }
 
-  static async deleteNotification(req: AuthRequest, res: Response) {
+  static async deleteNotification(req: Request, res: Response) {
     try {
       const notificationId = parseInt(req.params.id);
       await NotificationModel.deleteNotification(notificationId);

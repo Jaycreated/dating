@@ -55,7 +55,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      {/* <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-8 h-8 text-pink-500 fill-pink-500" />
@@ -80,8 +80,22 @@ const Dashboard = () => {
             >
               <MessageCircle className="w-6 h-6 text-gray-600" />
             </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition">
-              <User className="w-6 h-6 text-gray-600" />
+            <button 
+              onClick={() => navigate('/profile')}
+              className="p-1 hover:bg-gray-100 rounded-full transition-all duration-200 hover:ring-2 hover:ring-pink-400"
+              title="My Profile"
+            >
+              {user.photos?.[0] ? (
+                <img 
+                  src={user.photos[0]} 
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
             </button>
             <button
               onClick={handleLogout}
@@ -92,7 +106,7 @@ const Dashboard = () => {
             </button>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-12">
@@ -134,8 +148,8 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => alert('Profile editing coming soon!')}
-              className="p-6 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors text-center"
+              onClick={() => navigate('/profile')}
+              className="p-6 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors text-center w-full h-full"
             >
               <User className="w-8 h-8 text-blue-500 mx-auto mb-3" />
               <h3 className="font-semibold text-gray-900 mb-2">Profile</h3>

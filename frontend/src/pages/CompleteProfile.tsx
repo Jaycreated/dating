@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, User, Calendar } from 'lucide-react';
+import { User, Calendar } from 'lucide-react';
 import { Input } from '../components/forms/Input';
 import { Button } from '../components/forms/Button';
 import { Alert } from '../components/forms/Alert';
@@ -12,6 +12,7 @@ const CompleteProfile = () => {
     name: '',
     age: '',
     gender: '',
+    sexualOrientation: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,11 @@ const CompleteProfile = () => {
       setError('Please select your gender');
       return;
     }
+    
+    if (!formData.sexualOrientation) {
+      setError('Please select your sexual orientation');
+      return;
+    }
 
     setLoading(true);
 
@@ -43,6 +49,9 @@ const CompleteProfile = () => {
         name: formData.name,
         age: parseInt(formData.age),
         gender: formData.gender,
+        preferences: {
+          sexualOrientation: formData.sexualOrientation
+        }
       });
 
       // Redirect to step 2
@@ -59,13 +68,7 @@ const CompleteProfile = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
-            <Heart className="w-8 h-8 text-pink-500 fill-pink-500" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">Tell us about yourself</h1>
-          <p className="text-gray-600 mt-2">Help us find your perfect match</p>
-        </div>
+     ÷
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -135,7 +138,67 @@ const CompleteProfile = () => {
               </div>
             </div>
 
-            <Button type="submit" loading={loading} fullWidth>
+            {/* Looking For */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Looking For
+              </label>
+              <div className="space-y-3">
+                {[
+                  { id: 'straight', label: 'Straight', emoji: '👫' },
+                  { id: 'gay', label: 'Gay', emoji: '👨\u200d❤️\u200d👨' },
+                  { id: 'lesbian', label: 'Lesbian', emoji: '👩\u200d❤️\u200d👩' },
+                  { id: 'bisexual', label: 'Bisexual', emoji: '👩\u200d❤️\u200d👨' },
+                  { id: 'transgender', label: 'Transgender', emoji: '⚧️' }
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, sexualOrientation: option.id })}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                      formData.sexualOrientation === option.id
+                        ? 'border-purple-600 bg-purple-50 shadow-md'
+                        : 'border-gray-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          formData.sexualOrientation === option.id ? 'bg-purple-100' : 'bg-gray-100'
+                        }`}
+                      >
+                        <span className="text-2xl">{option.emoji}</span>
+                      </div>
+                      <span
+                        className={`text-lg font-medium ${
+                          formData.sexualOrientation === option.id ? 'text-purple-900' : 'text-gray-900'
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    </div>
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        formData.sexualOrientation === option.id
+                          ? 'border-purple-600 bg-purple-600'
+                          : 'border-gray-300 bg-white'
+                      }`}
+                    >
+                      {formData.sexualOrientation === option.id && (
+                        <div className="w-2 h-2 rounded-full bg-white"></div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              loading={loading} 
+              fullWidth 
+              disabled={!formData.sexualOrientation}
+            >
               {loading ? 'Saving...' : 'Continue'}
             </Button>
           </form>

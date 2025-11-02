@@ -7,7 +7,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import { initializeDatabase } from './config/database';
+import { initializeDatabase, pool } from './config/database';
 import { MessageModel } from './models/Message';
 
 // Import routes
@@ -16,6 +16,7 @@ import userRoutes from './routes/users';
 import matchRoutes from './routes/matches';
 import messageRoutes from './routes/messages';
 import notificationRoutes from './routes/notifications';
+import paymentRoutes from './routes/payment.routes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,8 +30,16 @@ const io = new Server(httpServer, {
 
 const PORT = process.env.PORT || 5000;
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -40,9 +49,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Dating API is running' });
+// Health check endpoint with detailed info
+app.get('/health', (_req, res) => {
+  const envInfo = {
+    nodeEnv: process.env.NODE_ENV,
+    port: process.env.PORT,
+    jwtSecret: process.env.JWT_SECRET ? '***SET***' : '***MISSING***',
+    databaseUrl: process.env.DATABASE_URL ? '***SET***' : '***MISSING***',
+    frontendUrl: process.env.FRONTEND_URL || 'Not set, using default',
+    // Add other important environment variables here
+  };
+  
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: envInfo,
+    memoryUsage: process.memoryUsage(),
+    uptime: process.uptime()
+  });
 });
 
 // API Routes
@@ -51,6 +75,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -66,19 +91,57 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Socket.IO authentication middleware
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   
   if (!token) {
-    return next(new Error('Authentication error'));
+    console.error('❌ [SOCKET] No token provided');
+    return next(new Error('Authentication token is required'));
   }
 
   try {
+    // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: number };
-    socket.data.userId = decoded.userId;
-    next();
+    
+    if (!decoded || !decoded.userId) {
+      console.error('❌ [SOCKET] Invalid token format');
+      return next(new Error('Invalid token format'));
+    }
+    
+    const userId = decoded.userId;
+    
+    // Verify user has chat access
+    try {
+      const result = await pool.query(
+        'SELECT id, has_chat_access FROM users WHERE id = $1',
+        [userId]
+      );
+      
+      if (result.rows.length === 0) {
+        console.error(`❌ [SOCKET] User not found with ID: ${userId}`);
+        return next(new Error('User not found'));
+      }
+      
+      const user = result.rows[0];
+      
+      if (!user.has_chat_access) {
+        console.log(`🚫 [SOCKET] User ${userId} does not have chat access`);
+        return next(new Error('Payment required for chat access'));
+      }
+      
+      // All checks passed, attach user ID to socket
+      socket.data.userId = userId;
+      console.log(`✅ [SOCKET] User ${userId} authenticated successfully`);
+      next();
+      
+    } catch (dbError) {
+      console.error('❌ [SOCKET] Database error during authentication:', dbError);
+      return next(new Error('Authentication error'));
+    }
+    
   } catch (error) {
-    next(new Error('Authentication error'));
+    console.error('❌ [SOCKET] Token verification failed:', error);
+    return next(new Error('Invalid or expired token'));
   }
 });
 

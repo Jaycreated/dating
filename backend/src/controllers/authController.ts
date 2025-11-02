@@ -2,7 +2,15 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { UserModel } from '../models/User';
-import { AuthRequest } from '../middleware/auth';
+
+// Extend the Express Request type to include our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
 
 export class AuthController {
   static async register(req: Request, res: Response) {
@@ -65,8 +73,11 @@ export class AuthController {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d'
       });
 
+      // Update last_login timestamp
+      const updatedUser = await UserModel.updateLastLogin(user.id);
+      
       // Remove password from response
-      const { password_hash, ...userWithoutPassword } = user;
+      const { password_hash, ...userWithoutPassword } = updatedUser;
 
       res.json({
         message: 'Login successful',
@@ -79,7 +90,7 @@ export class AuthController {
     }
   }
 
-  static async getMe(req: AuthRequest, res: Response) {
+  static async getMe(req: Request, res: Response) {
     try {
       const user = await UserModel.findById(req.userId!);
       if (!user) {
@@ -91,6 +102,47 @@ export class AuthController {
     } catch (error) {
       console.error('Get user error:', error);
       res.status(500).json({ error: 'Failed to fetch user' });
+    }
+  }
+
+  static async changePassword(req: Request, res: Response) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.userId!;
+
+      // Get user from database
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update password in database
+      await UserModel.updatePassword(userId, newPasswordHash);
+
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Failed to change password' });
+    }
+  }
+
+  static async logout(_req: Request, res: Response) {
+    try {
+      // In a stateless JWT system, logout is handled client-side by removing the token
+      // This endpoint can be used to perform any server-side cleanup if needed
+      res.json({ message: 'Logout successful' });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ error: 'Logout failed' });
     }
   }
 }

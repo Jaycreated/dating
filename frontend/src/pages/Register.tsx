@@ -5,6 +5,7 @@ import { Input } from '../components/forms/Input';
 import { PasswordInput } from '../components/forms/PasswordInput';
 import { Button } from '../components/forms/Button';
 import { Alert } from '../components/forms/Alert';
+// No need to import Select since we're using the one from useForm
 import { useAuth } from '../hooks/useAuth';
 import { useForm } from '../hooks/useForm';
 import { validators, calculatePasswordStrength } from '../utils/validation';
@@ -12,11 +13,12 @@ import { validators, calculatePasswordStrength } from '../utils/validation';
 const Register = () => {
   const navigate = useNavigate();
   const { register, loading, error, success } = useAuth();
-  const { values, errors, handleChange, validate } = useForm({
+  const { values, errors, handleChange, validate, setFieldValue } = useForm({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    lookingFor: '',
   });
   const [passwordStrength, setPasswordStrength] = useState(0);
 
@@ -34,12 +36,20 @@ const Register = () => {
       email: validators.email,
       password: validators.password,
       confirmPassword: (value) => validators.confirmPassword(values.password, value),
+      lookingFor: validators.lookingFor,
     });
 
     if (!isValid) return;
 
     try {
-      await register(values.name, values.email, values.password);
+      await register({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        preferences: {
+          lookingFor: values.lookingFor
+        }
+      });
     } catch (err) {
       // Error handled by useAuth hook
     }
@@ -90,6 +100,27 @@ const Register = () => {
               onChange={handleChange}
               error={errors.email}
             />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">I Am</label>
+              <select
+                name="lookingFor"
+                value={values.lookingFor}
+                onChange={(e) => setFieldValue('lookingFor', e.target.value)}
+                className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border ${
+                  errors.lookingFor ? 'border-red-300' : 'border-gray-300'
+                } focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md`}
+                required
+              >
+                <option value="">Select your identity</option>
+                <option value="straight">Straight</option>
+                <option value="gay">Gay</option>
+                <option value="lesbian">Lesbian</option>
+                <option value="bisexual">Bisexual</option>
+                <option value="transgender">Transgender</option>
+              </select>
+              {errors.lookingFor && <p className="mt-1 text-sm text-red-600">{errors.lookingFor}</p>}
+            </div>
 
             <PasswordInput
               id="password"

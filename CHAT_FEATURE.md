@@ -149,8 +149,8 @@ Frontend emits: stop_typing
    - User B: test2@example.com
 
 2. **Make them match:**
-   - User A swipes right on User B
-   - User B swipes right on User A
+   - User A s right on User B
+   - User B s right on User A
    - Both get "It's a Match!" 🎉
 
 3. **Open chat:**

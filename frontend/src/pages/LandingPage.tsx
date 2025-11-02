@@ -6,46 +6,25 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 relative overflow-hidden">
-      {/* Decorative floating hearts */}
-      <div className="absolute top-20 left-10 animate-bounce">
-        <Heart className="w-8 h-8 text-pink-400 fill-pink-400" />
+      {/* Decorative floating elements */}
+      <div className="absolute top-20 left-4 md:left-10 animate-bounce">
+        <Heart className="w-6 h-6 md:w-8 md:h-8 text-pink-400 fill-pink-400" />
       </div>
-      <div className="absolute top-40 right-20 animate-pulse">
-        <Sparkles className="w-6 h-6 text-purple-400" />
+      <div className="absolute top-40 right-4 md:right-20 animate-pulse">
+        <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
       </div>
       <div className="absolute bottom-40 left-1/4 animate-bounce delay-100">
-        <Heart className="w-6 h-6 text-pink-300 fill-pink-300" />
+        <Heart className="w-5 h-5 md:w-6 md:h-6 text-pink-300 fill-pink-300" />
       </div>
       <div className="absolute top-60 right-1/3 animate-pulse delay-200">
-        <Sparkles className="w-8 h-8 text-pink-400" />
+        <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-pink-400" />
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Logo and Brand */}
-        <div className="flex flex-col items-center justify-center pt-12">
-          <div className="mb-4">
-            <div className="relative w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center">
-              <svg
-                viewBox="0 0 100 100"
-                className="w-14 h-14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M30 45C30 35 35 25 45 25C50 25 53 28 55 32C57 28 60 25 65 25C75 25 80 35 80 45C80 60 55 75 55 75C55 75 30 60 30 45Z"
-                  fill="#ec4899"
-                  className="animate-pulse"
-                />
-                <circle cx="50" cy="50" r="35" stroke="#c026d3" strokeWidth="3" strokeDasharray="5,5" />
-              </svg>
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-16">Pairfect</h1>
-        </div>
+      <div className="container mx-auto px-4 py-8 pt-24">
 
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center mb-12">
-          <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight">
+          <h2 className="text-2xl md:text-6xl font-semibold text-gray-900 mb-4 leading-tight">
             Match Simply
           </h2>
           <h3 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">

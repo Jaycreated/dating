@@ -1,7 +1,13 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { AuthController } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
-import { validateRegistration, validateLogin, handleValidationErrors } from '../middleware/validation';
+import { 
+  validateRegistration, 
+  validateLogin, 
+  validateChangePassword,
+  handleValidationErrors 
+} from '../middleware/validation';
+import { body } from 'express-validator';
 
 const router = Router();
 
@@ -13,5 +19,30 @@ router.post('/login', validateLogin, handleValidationErrors, AuthController.logi
 
 // GET /api/auth/me
 router.get('/me', authenticate, AuthController.getMe);
+
+// POST /api/auth/change-password
+router.post(
+  '/change-password',
+  // First parse the body
+  express.json(),
+  // Then authenticate
+  authenticate,
+  // Then validate
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+    body('confirmPassword').custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Passwords do not match');
+      }
+      return true;
+    })
+  ],
+  handleValidationErrors,
+  AuthController.changePassword
+);
+
+// POST /api/auth/logout
+router.post('/logout', authenticate, AuthController.logout);
 
 export default router;

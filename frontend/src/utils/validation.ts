@@ -6,6 +6,13 @@ export const validators = {
     }
     return undefined;
   },
+  
+  lookingFor: (value: string): string | undefined => {
+    const validOptions = ['straight', 'gay', 'lesbian', 'bisexual', 'transgender'];
+    if (!value) return 'Please select what you are looking for';
+    if (!validOptions.includes(value)) return 'Please select a valid option';
+    return undefined;
+  },
 
   password: (value: string, minLength = 6): string | undefined => {
     if (!value) return 'Password is required';

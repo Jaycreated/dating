@@ -147,7 +147,7 @@ const Notifications = () => {
             </p>
             <button
               onClick={() => navigate('/swipe')}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
+              className="px-6 py-3 bg-[#651B55] text-white rounded-[24px] transition font-semibold"
             >
               Start Swiping
             </button>
@@ -157,6 +157,14 @@ const Notifications = () => {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
+                onClick={(e) => {
+                  // Only navigate if clicking on the notification body, not on buttons
+                  if (e.target === e.currentTarget) {
+                    if (notification.type !== 'match') {
+                      navigate(`/user/${notification.from_user_id}`);
+                    }
+                  }
+                }}
                 className={`bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow ${
                   !notification.read ? 'border-2 border-purple-200' : ''
                 }`}
@@ -188,7 +196,10 @@ const Notifications = () => {
                       <div className="flex items-center gap-2">
                         {!notification.read && (
                           <button
-                            onClick={() => handleMarkAsRead(notification.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(notification.id);
+                            }}
                             className="p-2 hover:bg-gray-100 rounded-full transition"
                             title="Mark as read"
                           >
@@ -196,7 +207,10 @@ const Notifications = () => {
                           </button>
                         )}
                         <button
-                          onClick={() => handleDelete(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(notification.id);
+                          }}
                           className="p-2 hover:bg-gray-100 rounded-full transition"
                           title="Delete"
                         >
@@ -208,7 +222,10 @@ const Notifications = () => {
                     {/* Action Button */}
                     {notification.type === 'match' && (
                       <button
-                        onClick={() => navigate('/matches')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/matches');
+                        }}
                         className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
                       >
                         View Match
