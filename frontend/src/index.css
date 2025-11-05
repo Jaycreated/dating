@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
   body {
     @apply bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 font-['Poppins'] antialiased;
     min-height: 100vh;
