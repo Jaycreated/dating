@@ -20,24 +20,40 @@ const LandingPage = () => {
         <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-pink-400" />
       </div>
 
-      <div className="container mx-auto px-4 py-8 pt-24">
+      <div className="container mx-auto px-4 py-8 pt-10 md:pt-24">
 
         {/* Hero Section */}
-        <div className="max-w-4xl mx-auto text-center mb-12">
-          <h2 className="text-2xl md:text-6xl font-semibold text-gray-900 mb-4 leading-tight">
-            Match Simply
-          </h2>
-          <h3 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-            Ready to find your match?
-          </h3>
-          <p className="text-lg text-gray-700 mb-10">
-            Where real people connect & match simply
-          </p>
+        <div className=" flex flex-col items-center max-w-4xl mx-auto text-center mb-12 gap-[16px]">
+
+          <div className="flex justify-center items-center ">
+            <div className='flex flex-col items-center justify-center gap-[6px] md:gap-[16px] mb-6'>
+              <img
+                src="/images/Pairfect logo.png"
+                alt="Pairfect Logo"
+                className="h-[60px] w-[70px md:h-[74px] md:w-[80px]"
+              />
+              <p className='text-xl md:text-2xl font-bold text-gray-900'>Pairfect</p>
+            </div>
+
+          </div>
+
+          <div>
+            <h2 className="text-2xl md:text-6xl font-semibold text-[#000000] leading-tight">
+              Match Simply
+            </h2>
+            <h3 className="text-2xl md:text-5xl font-bold text-[#000000] mb-6 leading-tight">
+              Ready to find your match?
+            </h3>
+            <p className="text-lg text-gray-700 mb-10">
+              Where real people connect & match simply
+            </p>
+          </div>
+
 
           {/* CTA Button */}
           <button
             onClick={() => navigate('/register')}
-            className="bg-purple-800 hover:bg-purple-900 text-white font-semibold px-10 py-4 rounded-full text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+            className="bg-[#651B55] hover:bg-[#651B55] text-white font-semibold px-5 md:px-10 py-2 md:py-4 rounded-full text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
           >
             Let's meet your match
           </button>
@@ -45,15 +61,15 @@ const LandingPage = () => {
 
         {/* Profile Cards */}
         <div className="max-w-3xl mx-auto mt-16 relative">
-          <div className="flex items-center justify-center gap-8">
+          <div className="flex items-center justify-center gap-2">
             {/* Left Card - Jerry */}
-            <div className="relative transform -rotate-6 hover:rotate-0 transition-transform duration-300">
-              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-64 h-80">
-                <div className="h-72 bg-gradient-to-br from-gray-200 to-gray-300 relative">
+            <div className="relative transform -rotate-12 hover:rotate-0 transition-transform duration-300">
+              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden p-[15px] w-[180px] md:w-[250px] h-[250px] md:h-[308px]">
+                <div className="h-[180px] md:h-[250px] bg-gradient-to-br from-gray-200 to-gray-300 relative">
                   <img
                     src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop"
                     alt="Jerry"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
                 <div className="p-4 bg-white">
@@ -64,19 +80,23 @@ const LandingPage = () => {
 
             {/* Heart Icon */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-              <div className="bg-white rounded-full p-4 shadow-2xl animate-pulse">
-                <Heart className="w-12 h-12 text-red-500 fill-red-500" />
-              </div>
+              <div className="shadow-2xl">
+                <img
+                  src="/images/heart.png"
+                  alt="Heart"
+                  className="w-[104px] h-[105px] object-cover rounded-lg"
+                />            
+               </div>
             </div>
 
             {/* Right Card - Jessica */}
-            <div className="relative transform rotate-6 hover:rotate-0 transition-transform duration-300">
-              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-64 h-80">
-                <div className="h-72 bg-gradient-to-br from-gray-200 to-gray-300 relative">
+            <div className="relative transform rotate-12 hover:rotate-0 transition-transform duration-300">
+              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden p-[15px] w-[180px] md:w-[250px] h-[250px] md:h-[308px]">
+                <div className="h-[180px] md:h-[250px] bg-gradient-to-br from-gray-200 to-gray-300 relative rounded-lg">
                   <img
                     src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=600&fit=crop"
                     alt="Jessica"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
                 <div className="p-4 bg-white">
