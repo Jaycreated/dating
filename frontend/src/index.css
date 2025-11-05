@@ -10,8 +10,9 @@
   }
   
   body {
-    @apply bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 font-['Poppins'] antialiased;
+    @apply font-['Poppins'] antialiased;
     min-height: 100vh;
+    background: linear-gradient(181.19deg, #FFE2F9 1.01%, #FFFFFF 31.63%);
   }
 }
 
