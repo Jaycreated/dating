@@ -58,15 +58,12 @@ const Register = () => {
   const passwordsMatch = values.password && values.confirmPassword && values.password === values.confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center px-4 py-8 md:py-12">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
-            <Heart className="w-8 h-8 text-pink-500 fill-pink-500" />
-          </div>
           <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Start your journey to find love</p>
+          <p className="text-gray-600 mt-2">Start your Match Making Journey</p>
         </div>
 
         {/* Register Form */}
