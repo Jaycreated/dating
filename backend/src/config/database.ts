@@ -9,31 +9,39 @@ if (process.env.DATABASE_URL) {
 }
 
 // Use DATABASE_URL if provided, otherwise use individual settings
-const pool = new Pool(
-  process.env.DATABASE_URL
-    ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: {
-          rejectUnauthorized: true,
-          // Add more specific SSL options if needed
-        },
-        max: 10, // Reduced max connections to avoid overloading
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 20000, // Increased to 20 seconds
-        query_timeout: 10000, // Add query timeout
-        statement_timeout: 10000, // Add statement timeout
-      }
-    : {
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432'),
-        database: process.env.DB_NAME || 'dating_app',
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD,
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
-      }
-);
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false, // Changed to false for development, set to true in production with proper CA
+      },
+      max: 5, // Reduced max connections to avoid overloading
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000, // Increased to 30 seconds
+      query_timeout: 15000, // Add query timeout
+      statement_timeout: 15000, // Add statement timeout
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME || 'dating_app',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD,
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000,
+      keepAlive: true,
+    };
+
+console.log('📊 Database connection config:', {
+  ...poolConfig,
+  password: poolConfig.password ? '***' : 'not set',
+  connectionString: poolConfig.connectionString ? '***' : 'not set'
+});
+
+const pool = new Pool(poolConfig);
 
 // Initialize database tables
 export const initializeDatabase = async () => {

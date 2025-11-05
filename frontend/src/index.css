@@ -1,11 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
   body {
-    @apply bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 font-sans antialiased;
+    @apply font-['Poppins'] antialiased;
     min-height: 100vh;
+    background: linear-gradient(181.19deg, #FFE2F9 1.01%, #FFFFFF 31.63%);
   }
 }
 

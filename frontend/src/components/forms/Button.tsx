@@ -20,8 +20,8 @@ export const Button = ({
   const baseStyles = 'font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
   
   const variantStyles = {
-    primary: 'bg-purple-800 hover:bg-purple-900 text-white hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none',
-    secondary: 'bg-white hover:bg-gray-50 text-purple-800 border-2 border-purple-800',
+    primary: 'bg-[#651B5A] text-white hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none',
+    secondary: 'bg-white hover:bg-gray-50 text-[#651B5A] border-2 border-[#651B5A',
     ghost: 'bg-transparent hover:bg-gray-100 text-gray-700',
   };
 
