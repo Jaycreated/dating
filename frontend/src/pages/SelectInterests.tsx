@@ -62,7 +62,7 @@ const SelectInterests = () => {
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Title */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">
             One last thing, What are you interested in?
           </h1>
           <p className="text-gray-600">
