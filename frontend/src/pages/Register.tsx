@@ -99,7 +99,7 @@ const Register = () => {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">I Am</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sexual Orientation</label>
               <select
                 name="lookingFor"
                 value={values.lookingFor}

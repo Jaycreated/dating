@@ -10,6 +10,8 @@ const interests = [
   { id: 'casual', label: 'Casual Frienship', icon: Users },
   { id: 'hookup', label: 'Hookup', icon: Smile },
   { id: 'chat', label: 'Chat Buddy', icon: MessageCircle },
+  { id: 'sugar_mummy', label: 'Sugar Mummy', emoji: '👩‍💼' },
+  { id: 'sugar_daddy', label: 'Sugar Daddy', emoji: '👨‍💼' },
 ];
 
 const SelectInterests = () => {
@@ -60,7 +62,7 @@ const SelectInterests = () => {
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Title */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">
             One last thing, What are you interested in?
           </h1>
           <p className="text-gray-600">
@@ -75,7 +77,6 @@ const SelectInterests = () => {
           {/* Interest Options */}
           <div className="space-y-4">
             {interests.map((interest) => {
-              const Icon = interest.icon;
               const isSelected = selectedInterest === interest.id;
 
               return (
@@ -95,11 +96,15 @@ const SelectInterests = () => {
                         isSelected ? 'bg-purple-100' : 'bg-gray-100'
                       }`}
                     >
-                      <Icon
-                        className={`w-6 h-6 ${
-                          isSelected ? 'text-purple-600' : 'text-gray-600'
-                        }`}
-                      />
+                      {interest.emoji ? (
+                        <span className="text-2xl">{interest.emoji}</span>
+                      ) : interest.icon ? (
+                        <interest.icon
+                          className={`w-6 h-6 ${
+                            isSelected ? 'text-purple-600' : 'text-gray-600'
+                          }`}
+                        />
+                      ) : null}
                     </div>
                     <span
                       className={`text-lg font-medium ${
