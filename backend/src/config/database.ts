@@ -17,7 +17,7 @@ const poolConfig = process.env.DATABASE_URL
       },
       max: 5, // Reduced max connections to avoid overloading
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 30000, // Increased to 30 seconds
+      connectionTimeoutMillis: 40000, // Increased to 30 seconds
       query_timeout: 15000, // Add query timeout
       statement_timeout: 15000, // Add statement timeout
       keepAlive: true,

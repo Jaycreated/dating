@@ -11,8 +11,7 @@ const CompleteProfile = () => {
   const [formData, setFormData] = useState({
     name: '',
     age: '',
-    gender: '',
-    sexualOrientation: '',
+    gender: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,11 +36,6 @@ const CompleteProfile = () => {
       return;
     }
     
-    if (!formData.sexualOrientation) {
-      setError('Please select your sexual orientation');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -49,9 +43,7 @@ const CompleteProfile = () => {
         name: formData.name,
         age: parseInt(formData.age),
         gender: formData.gender,
-        preferences: {
-          sexualOrientation: formData.sexualOrientation
-        }
+        preferences: {}
       });
 
       // Redirect to step 2
@@ -68,8 +60,6 @@ const CompleteProfile = () => {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Header */}
-     ÷
-
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {error && <Alert type="error" message={error} />}
@@ -138,66 +128,11 @@ const CompleteProfile = () => {
               </div>
             </div>
 
-            {/* Looking For */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Looking For
-              </label>
-              <div className="space-y-3">
-                {[
-                  { id: 'straight', label: 'Straight', emoji: '👫' },
-                  { id: 'gay', label: 'Gay', emoji: '👨\u200d❤️\u200d👨' },
-                  { id: 'lesbian', label: 'Lesbian', emoji: '👩\u200d❤️\u200d👩' },
-                  { id: 'bisexual', label: 'Bisexual', emoji: '👩\u200d❤️\u200d👨' },
-                  { id: 'transgender', label: 'Transgender', emoji: '⚧️' }
-                ].map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, sexualOrientation: option.id })}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
-                      formData.sexualOrientation === option.id
-                        ? 'border-purple-600 bg-purple-50 shadow-md'
-                        : 'border-gray-200 hover:border-purple-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          formData.sexualOrientation === option.id ? 'bg-purple-100' : 'bg-gray-100'
-                        }`}
-                      >
-                        <span className="text-2xl">{option.emoji}</span>
-                      </div>
-                      <span
-                        className={`text-lg font-medium ${
-                          formData.sexualOrientation === option.id ? 'text-purple-900' : 'text-gray-900'
-                        }`}
-                      >
-                        {option.label}
-                      </span>
-                    </div>
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        formData.sexualOrientation === option.id
-                          ? 'border-purple-600 bg-purple-600'
-                          : 'border-gray-300 bg-white'
-                      }`}
-                    >
-                      {formData.sexualOrientation === option.id && (
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <Button 
               type="submit" 
               loading={loading} 
               fullWidth 
-              disabled={!formData.sexualOrientation}
             >
               {loading ? 'Saving...' : 'Continue'}
             </Button>

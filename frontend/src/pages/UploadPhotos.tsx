@@ -109,9 +109,9 @@ const UploadPhotos = () => {
           {error && <Alert type="error" message={error} />}
 
           {/* Photo Upload Boxes */}
-          <div className="flex justify-center md:gap-6 gap-2">
+          <div className="flex justify-center md:gap-6 gap-2 w-full">
             {[0, 1].map((index) => (
-              <div key={index} className="relative">
+              <div key={index} className="relative w-40">
                 <input
                   ref={fileInputRefs[index]}
                   type="file"
@@ -122,7 +122,7 @@ const UploadPhotos = () => {
 
                 {photos[index] ? (
                   // Show uploaded photo
-                  <div className="relative md:w-48 w-36/dash md:h-64 h-48 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-md group">
+                  <div className="relative w-40 lg:w-48 lg:h-64 md:w-48 md:h-64 h-48 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-md group">
                     <img
                       src={photos[index]}
                       alt={`Upload ${index + 1}`}
@@ -143,7 +143,7 @@ const UploadPhotos = () => {
                     type="button"
                     onClick={() => fileInputRefs[index].current?.click()}
                     disabled={uploading[index]}
-                    className="w-48 h-64 rounded-2xl border-2 border-dashed border-gray-300 hover:border-purple-400 bg-white hover:bg-purple-50 transition-all flex flex-col items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full md:w-48 h-60 md:h-64 rounded-2xl border-2 border-dashed border-gray-300 hover:border-purple-400 bg-white hover:bg-purple-50 transition-all flex flex-col items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading[index] ? (
                       <>
