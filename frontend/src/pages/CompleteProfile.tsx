@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar } from 'lucide-react';
+import { User, Calendar, MapPin } from 'lucide-react';
 import { Input } from '../components/forms/Input';
 import { Button } from '../components/forms/Button';
 import { Alert } from '../components/forms/Alert';
@@ -11,7 +11,8 @@ const CompleteProfile = () => {
   const [formData, setFormData] = useState({
     name: '',
     age: '',
-    gender: ''
+    gender: '',
+    location: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,11 @@ const CompleteProfile = () => {
       setError('Please select your gender');
       return;
     }
+
+    if (!formData.location.trim()) {
+      setError('Please enter your location');
+      return;
+    }
     
     setLoading(true);
 
@@ -43,6 +49,7 @@ const CompleteProfile = () => {
         name: formData.name,
         age: parseInt(formData.age),
         gender: formData.gender,
+        location: formData.location.trim(),
         preferences: {}
       });
 
@@ -128,6 +135,18 @@ const CompleteProfile = () => {
               </div>
             </div>
 
+
+
+              <Input
+                id="location"
+                label="What's your location?"
+                type="text"
+                placeholder="Enter your city or area"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                icon={<MapPin className="w-5 h-5 text-gray-400" />}
+                required
+              />
 
             <Button 
               type="submit" 
