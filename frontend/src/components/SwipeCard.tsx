@@ -76,7 +76,7 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
   const interestMap: Record<InterestType, string> = {
     relationship: 'Looking for a relationship',
     casual: 'Casual friendship',
-    hookup: 'Looking to hookup',
+    hookup: 'Looking to Hookup',
     chat: 'Chat buddy',
     dating: 'Looking to date',
     friends: 'Looking for friends',
@@ -154,7 +154,7 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
       <div
         className="relative bg-white shadow-2xl overflow-hidden cursor-grab active:cursor-grabbing select-none w-full"
         style={{
-          height: 400,
+          height: 300,
           borderRadius: 24,
           padding: 10,
           opacity: 1,
@@ -174,7 +174,7 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
       >
 
         {/* Photo */}
-        <div className="relative h-[500px]">
+        <div className="relative">
           <img
             src={photos[currentPhotoIndex]}
             alt={user.name}
@@ -269,7 +269,7 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between mt-2">
         <button
           onClick={onPass}
           className="w-[56px] h-[56px] p-[16px] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 bg-[#E03131]"
@@ -281,7 +281,7 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
           onClick={onLike}
           className="w-[56px] h-[56px] p-[16px] bg-[#FFCFF4] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2"
         >
-          <Heart className="w-8 h-8 " />
+          <img alt="heart icon" src="/public/images/vector.png" className="w-auto h-auto" />
         </button>
       </div>
     </div>
