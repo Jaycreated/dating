@@ -12,6 +12,7 @@ const interests = [
   { id: 'chat', label: 'Chat Buddy', icon: MessageCircle },
   { id: 'sugar_mummy', label: 'Sugar Mummy', emoji: '👩‍💼' },
   { id: 'sugar_daddy', label: 'Sugar Daddy', emoji: '👨‍💼' },
+  { id: 'fwb', label: 'Friends with Benefits', emoji: '💝' },
 ];
 
 const SelectInterests = () => {
