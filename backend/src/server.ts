@@ -19,11 +19,19 @@ import messageRoutes from './routes/messages';
 import notificationRoutes from './routes/notifications';
 import paymentRoutes from './routes/payment.routes';
 
+// Validate required environment variables
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:8081'
+    ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -33,7 +41,10 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:8081'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -78,7 +89,6 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
 
 // Serve static files from the React frontend app
-// The path goes up two levels from dist/server.js to reach frontend/dist
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
 // API 404 handler for undefined API routes only
@@ -87,18 +97,34 @@ app.use('/api/*', (req, res) => {
 });
 
 // All other GET requests not handled by API routes return the React app
-// This enables client-side routing to work properly
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
-  res.status(err.status || 500).json({
+  const statusCode = (err as any).status || 500;
+  res.status(statusCode).json({
     error: err.message || 'Internal server error',
   });
 });
+
+// Helper function to verify match exists
+async function verifyMatch(userId: number, receiverId: number): Promise<boolean> {
+  try {
+    const result = await pool.query(
+      `SELECT id FROM matches 
+       WHERE (user1_id = $1 AND user2_id = $2) 
+       OR (user1_id = $2 AND user2_id = $1)`,
+      [userId, receiverId]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error verifying match:', error);
+    return false;
+  }
+}
 
 // Socket.IO authentication middleware
 io.use(async (socket, next) => {
@@ -110,8 +136,8 @@ io.use(async (socket, next) => {
   }
 
   try {
-    // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: number };
+    // Verify JWT token - no fallback secret
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
     
     if (!decoded || !decoded.userId) {
       console.error('❌ [SOCKET] Invalid token format');
@@ -164,13 +190,23 @@ io.on('connection', (socket) => {
   socket.join(`user:${userId}`);
 
   // Join conversation room
-  socket.on('join_conversation', (matchId: number) => {
+  socket.on('join_conversation', async (matchId: number) => {
+    // Validate input
+    if (!matchId || typeof matchId !== 'number') {
+      socket.emit('error', { message: 'Invalid match ID' });
+      return;
+    }
+    
     socket.join(`conversation:${matchId}`);
     console.log(`User ${userId} joined conversation ${matchId}`);
   });
 
   // Leave conversation room
   socket.on('leave_conversation', (matchId: number) => {
+    if (!matchId || typeof matchId !== 'number') {
+      return;
+    }
+    
     socket.leave(`conversation:${matchId}`);
     console.log(`User ${userId} left conversation ${matchId}`);
   });
@@ -180,32 +216,69 @@ io.on('connection', (socket) => {
     try {
       const { matchId, receiverId, content } = data;
 
-      // Save message to database
-      const message = await MessageModel.create(userId, receiverId, content);
+      // Validate input
+      if (!matchId || !receiverId || !content) {
+        socket.emit('message_error', { error: 'Missing required fields' });
+        return;
+      }
 
-      // Emit to both users in the conversation
-      io.to(`conversation:${matchId}`).emit('new_message', {
+      if (typeof content !== 'string' || content.trim().length === 0) {
+        socket.emit('message_error', { error: 'Message content cannot be empty' });
+        return;
+      }
+
+      if (content.length > 5000) {
+        socket.emit('message_error', { error: 'Message too long (max 5000 characters)' });
+        return;
+      }
+
+      // Verify match exists
+      const matchExists = await verifyMatch(userId, receiverId);
+      if (!matchExists) {
+        socket.emit('message_error', { error: 'No valid match found' });
+        return;
+      }
+
+      // Save message to database
+      const message = await MessageModel.create(userId, receiverId, content.trim());
+
+      // Only emit after successful save
+      const messageData = {
         id: message.id,
         sender_id: userId,
         receiver_id: receiverId,
         content: message.content,
         created_at: message.created_at,
-      });
+      };
+
+      // Emit to both users in the conversation
+      io.to(`conversation:${matchId}`).emit('new_message', messageData);
 
       // Also emit to receiver's personal room if they're not in the conversation
       io.to(`user:${receiverId}`).emit('message_notification', {
         from_user_id: userId,
         match_id: matchId,
-        content: content,
+        content: content.trim(),
       });
+
+      // Confirm to sender
+      socket.emit('message_sent', { messageId: message.id });
+
     } catch (error) {
       console.error('Error sending message:', error);
-      socket.emit('message_error', { error: 'Failed to send message' });
+      socket.emit('message_error', { 
+        error: 'Failed to send message',
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      });
     }
   });
 
   // Handle typing indicator
   socket.on('typing', (data: { matchId: number; receiverId: number }) => {
+    if (!data?.matchId || !data?.receiverId) {
+      return;
+    }
+    
     io.to(`user:${data.receiverId}`).emit('user_typing', {
       match_id: data.matchId,
       user_id: userId,
@@ -213,6 +286,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('stop_typing', (data: { matchId: number; receiverId: number }) => {
+    if (!data?.matchId || !data?.receiverId) {
+      return;
+    }
+    
     io.to(`user:${data.receiverId}`).emit('user_stop_typing', {
       match_id: data.matchId,
       user_id: userId,
