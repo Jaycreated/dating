@@ -28,13 +28,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-     origin: [
-      "*"
+   
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:8081'
     ],
-    // origin: [
-    //   process.env.FRONTEND_URL || 'http://localhost:3000',
-    //   'http://localhost:8081'
-    // ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -44,13 +42,11 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 const corsOptions = {
-   origin: [
-    "*"
+ 
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:8081'
   ],
-  // origin: [
-  //   process.env.FRONTEND_URL || 'http://localhost:3000',
-  //   'http://localhost:8081'
-  // ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
