@@ -205,6 +205,11 @@ export const messageAPI = {
     return response.data;
   },
 
+  getConversations: async () => {
+    const response = await api.get('/api/conversations');
+    return response.data;
+  },
+
   getUnreadCount: async () => {
     const response = await api.get('/api/messages/unread/count');
     return response.data;

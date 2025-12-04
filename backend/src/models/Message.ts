@@ -37,4 +37,26 @@ export class MessageModel {
     );
     return parseInt(result.rows[0].count);
   }
+
+  static async getConversations(userId: number): Promise<any[]> {
+    const result = await pool.query(
+      `SELECT DISTINCT 
+        u.id, u.name, u.email, u.photos, u.age, u.location,
+        MAX(m.created_at) as last_message_at,
+        (SELECT content FROM messages 
+         WHERE (sender_id = $1 AND receiver_id = u.id) 
+            OR (sender_id = u.id AND receiver_id = $1)
+         ORDER BY created_at DESC LIMIT 1) as last_message,
+        (SELECT COUNT(*) FROM messages 
+         WHERE receiver_id = $1 AND sender_id = u.id) as unread_count
+       FROM users u
+       INNER JOIN messages m ON (m.sender_id = u.id AND m.receiver_id = $1) 
+                             OR (m.sender_id = $1 AND m.receiver_id = u.id)
+       WHERE u.id != $1
+       GROUP BY u.id, u.name, u.email, u.photos, u.age, u.location
+       ORDER BY MAX(m.created_at) DESC`,
+      [userId]
+    );
+    return result.rows;
+  }
 }
