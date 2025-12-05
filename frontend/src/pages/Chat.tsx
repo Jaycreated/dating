@@ -428,7 +428,7 @@ const Chat = () => {
                 onClick={() => navigate('/payment/chat')}
                 className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
               >
-                Unlock Chat for ₦1,000
+                Unlock Chat for ₦3,000
               </button>
               <button
                 onClick={() => {
