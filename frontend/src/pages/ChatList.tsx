@@ -1,55 +1,68 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, User as UserIcon } from 'lucide-react';
-import { matchAPI } from '../services/api';
+import { messageAPI } from '../services/api';
 
-interface Match {
+interface Conversation {
   id: number;
   name: string;
-  age: number;
-  photos: string[];
-  bio?: string;
-  matched_at?: string;
+  photos?: string[] | string;
+  age?: number;
+  location?: string;
+  last_message?: string;
+  last_message_at?: string;
+  unread_count?: number;
 }
 
 const ChatList = () => {
   const navigate = useNavigate();
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadMatches();
+    loadConversations();
   }, []);
 
-  const loadMatches = async () => {
+  const loadConversations = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const response = await matchAPI.getMatches();
-      const matchesData = response.matches || [];
+      const response = await messageAPI.getConversations();
+      const conversationsData = response.conversations || [];
+      setConversations(conversationsData);
       
-      // Parse JSON fields if they're strings
-      const parsedMatches = matchesData.map((match: any) => ({
-        ...match,
-        photos: typeof match.photos === 'string' ? JSON.parse(match.photos) : match.photos || [],
-      }));
-
-      setMatches(parsedMatches);
-      
-      // Store in localStorage for chat page to access
-      localStorage.setItem('matches', JSON.stringify(parsedMatches));
+      // Store in localStorage
+      localStorage.setItem('conversations', JSON.stringify(conversationsData));
     } catch (err: any) {
-      console.error('Error loading matches:', err);
-      setError('Failed to load matches');
+      console.error('Error loading conversations:', err);
+      setError('Failed to load conversations');
     } finally {
       setLoading(false);
     }
   };
 
-  const getFirstPhoto = (photos: string[]) => {
-    return photos[0] || 'https://via.placeholder.com/100';
+  const getFirstPhoto = (photos?: string[] | string) => {
+    if (!photos) return 'https://via.placeholder.com/100';
+    
+    // If it's an array, get the first element
+    if (Array.isArray(photos)) {
+      return photos[0] || 'https://via.placeholder.com/100';
+    }
+    
+    // If it's a string, try to parse as JSON array
+    if (typeof photos === 'string') {
+      try {
+        const parsed = JSON.parse(photos);
+        return Array.isArray(parsed) ? parsed[0] : photos;
+      } catch {
+        // If not valid JSON, return the string as-is
+        return photos;
+      }
+    }
+    
+    return 'https://via.placeholder.com/100';
   };
 
   const getTimeAgo = (dateString?: string) => {
@@ -110,7 +123,7 @@ const ChatList = () => {
           </div>
         )}
 
-        {matches.length === 0 ? (
+        {conversations.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <MessageCircle className="w-12 h-12 text-[#651B55]" />
@@ -130,17 +143,17 @@ const ChatList = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {matches.map((match) => (
+            {conversations.map((conversation) => (
               <div
-                key={match.id}
-                onClick={() => navigate(`/chat/${match.id}`)}
+                key={conversation.id}
+                onClick={() => navigate(`/chat/${conversation.id}`)}
                 className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex items-center gap-4"
               >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
                   <img
-                    src={getFirstPhoto(match.photos)}
-                    alt={match.name}
+                    src={getFirstPhoto(conversation.photos)}
+                    alt={conversation.name}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                   {/* Online indicator (optional) */}
@@ -151,23 +164,30 @@ const ChatList = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-gray-900 truncate">
-                      {match.name}, {match.age}
+                      {conversation.name}
+                      {conversation.age && `, ${conversation.age}`}
                     </h3>
-                    {match.matched_at && (
+                    {conversation.last_message_at && (
                       <span className="text-xs text-gray-500 ml-2">
-                        {getTimeAgo(match.matched_at)}
+                        {getTimeAgo(conversation.last_message_at)}
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-gray-500 truncate">
-                    Tap to start chatting
+                    {conversation.last_message || 'Tap to start chatting'}
                   </p>
                 </div>
 
-                {/* Arrow */}
-                <div className="flex-shrink-0">
-                  <MessageCircle className="w-5 h-5 text-gray-400" />
-                </div>
+                {/* Unread Badge */}
+                {conversation.unread_count ? (
+                  <div className="flex-shrink-0 bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">
+                    {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0">
+                    <MessageCircle className="w-5 h-5 text-gray-400" />
+                  </div>
+                )}
               </div>
             ))}
           </div>

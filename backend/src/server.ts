@@ -16,6 +16,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import matchRoutes from './routes/matches';
 import messageRoutes from './routes/messages';
+import conversationRoutes from './routes/conversations';
 import notificationRoutes from './routes/notifications';
 import paymentRoutes from './routes/payment.routes';
 
@@ -87,6 +88,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/conversations', conversationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
 
@@ -116,12 +118,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 async function verifyMatch(userId: number, receiverId: number): Promise<boolean> {
   try {
     const result = await pool.query(
-      `SELECT id FROM matches 
-       WHERE (user1_id = $1 AND user2_id = $2) 
-       OR (user1_id = $2 AND user2_id = $1)`,
+      `SELECT COUNT(*) as count FROM matches 
+       WHERE ((user_id = $1 AND target_user_id = $2) OR (user_id = $2 AND target_user_id = $1))
+       AND action = 'like'`,
       [userId, receiverId]
     );
-    return result.rows.length > 0;
+    return parseInt(result.rows[0].count) === 2;
   } catch (error) {
     console.error('Error verifying match:', error);
     return false;
