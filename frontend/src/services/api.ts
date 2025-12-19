@@ -263,8 +263,8 @@ export const paymentAPI = {
     });
     return response.data;
   },
-  verifyPayment: async (reference: string) => {
-    const response = await api.post('/api/payments/chat/verify', { reference });
+  verifyPayment: async (data: { reference: string; email?: string }) => {
+    const response = await api.post('/api/payments/verify', data);
     return response.data;
   },
 };

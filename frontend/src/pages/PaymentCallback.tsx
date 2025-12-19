@@ -6,10 +6,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
 
-  const reference =
-    searchParams.get('reference') || searchParams.get('trxref');
+  const reference = searchParams.get('reference') || searchParams.get('trxref');
+  // Get email from URL params or use the one from auth context
+  const email = searchParams.get('email') || user?.email;
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -23,7 +24,11 @@ const PaymentCallback = () => {
         console.log('🔍 Verifying payment:', reference);
 
         // 1. Verify payment with backend
-        const verification = await paymentAPI.verifyPayment(reference);
+        // Include email in case session is lost
+        const verification = await paymentAPI.verifyPayment({
+          reference,
+          email
+        });
         console.log('✅ Payment verification response:', verification);
 
         if (!verification?.success) {

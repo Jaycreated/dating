@@ -113,7 +113,7 @@ export const initializeChatPayment = async (req: Request, res: Response) => {
 export const verifyPayment = async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const { reference } = req.body;
+    const { reference, email } = req.body;
     const userId = (req as any).user?.id;
 
     if (!reference) {
@@ -213,9 +213,24 @@ export const verifyPayment = async (req: Request, res: Response) => {
       }
     }
 
-    const targetUserId = transaction.user_id || userId;
+    // If we don't have a user ID from session, try to get it from the transaction or email
+    let targetUserId = transaction.user_id || userId;
     const metadata = transaction.metadata || {};
     const planType = metadata.planType || 'monthly';
+
+    // If we still don't have a user ID but have an email, try to find the user
+    if (!targetUserId && email) {
+      const userQuery = await client.query(
+        'SELECT id FROM users WHERE email = $1',
+        [email]
+      );
+      
+      if (userQuery.rows.length > 0) {
+        targetUserId = userQuery.rows[0].id;
+      } else {
+        throw new Error('Unable to determine user for this payment');
+      }
+    }
 
     // If already processed, just return success (idempotent)
     if (transaction.status === 'success') {
