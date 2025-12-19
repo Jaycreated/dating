@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { paymentAPI } from '../services/api';
+import { paymentAPI, authAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const reference =
     searchParams.get('reference') || searchParams.get('trxref');
@@ -28,24 +29,55 @@ const PaymentCallback = () => {
         if (!verification?.success) {
           toast.info(
             verification?.error ||
-              'Payment is still processing. You can continue chatting.'
+              'Payment verification is still processing. You can continue chatting.'
           );
           redirectToChats();
           return;
         }
 
-        // 2. Mark chat access locally
-        localStorage.setItem('hasChatAccess', 'true');
-        localStorage.removeItem('chatAccessChecked');
-
-        toast.success('Payment successful! Redirecting to your chats…');
-
-        // 3. Redirect (SPA navigation — no hard reload)
-        redirectToChats(800);
+        // 2. Refresh user session and update chat access
+        try {
+          const user = await authAPI.getMe();
+          if (user) {
+            // Update user in context
+            setUser(user);
+            
+            // Force refresh chat access status
+            try {
+              const accessResponse = await paymentAPI.checkChatAccess();
+              const hasAccess = accessResponse.hasAccess;
+              // Update localStorage
+              localStorage.setItem('hasChatAccess', hasAccess ? 'true' : 'false');
+              
+              // Force a hard refresh to ensure all components re-render with the new access state
+              toast.success('Payment successful! Updating your chat access...');
+              // Clear any cached data that might affect the chat access state
+              localStorage.removeItem('chatAccessChecked');
+              // Use our redirect function which handles the base URL properly
+              redirectToChats();
+              return;
+            } catch (e) {
+              console.error('Error refreshing chat access:', e);
+              // Still redirect even if this fails
+              localStorage.removeItem('chatAccessChecked');
+              toast.success('Payment successful! Loading your chats...');
+              redirectToChats();
+              return;
+            }
+          } else {
+            throw new Error('User fetch failed');
+          }
+        } catch (authError) {
+          console.error('❌ Session refresh failed:', authError);
+          localStorage.removeItem('chatAccessChecked');
+          toast.warning('Payment verified. Refreshing your session...');
+          redirectToChats();
+          return;
+        }
       } catch (error) {
         console.error('❌ Payment verification error:', error);
         toast.error(
-          'Something went wrong while verifying your payment. Redirecting…'
+          'Something went wrong while verifying your payment. You can still access chats.'
         );
         redirectToChats();
       }
@@ -54,9 +86,27 @@ const PaymentCallback = () => {
     verifyPayment();
   }, [reference]);
 
+  const getBaseUrl = () => {
+    // In production, use VITE_APP_URL from environment variables
+    // In development, use the current origin (http://localhost:3000)
+    const envUrl = import.meta.env.VITE_APP_URL;
+    
+    // If VITE_APP_URL is set and we're in production, use it
+    if (import.meta.env.PROD && envUrl) {
+      // Ensure the URL doesn't end with a slash
+      return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+    }
+    
+    // Fall back to current origin for development
+    return window.location.origin;
+  };
+
   const redirectToChats = (delay = 0) => {
     setTimeout(() => {
-      navigate('/chats', { replace: true });
+      const baseUrl = getBaseUrl();
+      const targetUrl = `${baseUrl}/chats`;
+      console.log('Redirecting to:', targetUrl);
+      window.location.replace(targetUrl);
     }, delay);
   };
 
