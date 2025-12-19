@@ -53,15 +53,15 @@ const PaymentCallback = () => {
               toast.success('Payment successful! Updating your chat access...');
               // Clear any cached data that might affect the chat access state
               localStorage.removeItem('chatAccessChecked');
-              // Force a full page reload to reset all component states
-              window.location.href = '/chats';
+              // Use our redirect function which handles the base URL properly
+              redirectToChats();
               return;
             } catch (e) {
               console.error('Error refreshing chat access:', e);
               // Still redirect even if this fails
               localStorage.removeItem('chatAccessChecked');
               toast.success('Payment successful! Loading your chats...');
-              window.location.href = '/chats';
+              redirectToChats();
               return;
             }
           } else {
@@ -71,7 +71,7 @@ const PaymentCallback = () => {
           console.error('❌ Session refresh failed:', authError);
           localStorage.removeItem('chatAccessChecked');
           toast.warning('Payment verified. Refreshing your session...');
-          window.location.href = '/chats';
+          redirectToChats();
           return;
         }
       } catch (error) {
