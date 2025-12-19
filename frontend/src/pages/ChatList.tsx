@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, User as UserIcon } from 'lucide-react';
-import { messageAPI } from '../services/api';
+import { ArrowLeft, MessageCircle, User as UserIcon, Lock } from 'lucide-react';
+import { messageAPI, paymentAPI } from '../services/api';
 
 interface Conversation {
   id: number;
@@ -19,9 +19,41 @@ const ChatList = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [hasChatAccess, setHasChatAccess] = useState<boolean | null>(() => {
+    const storedAccess = localStorage.getItem('hasChatAccess');
+    return storedAccess ? storedAccess === 'true' : null;
+  });
 
   useEffect(() => {
-    loadConversations();
+    const checkAccess = async () => {
+      try {
+        console.log('🔍 Checking chat access...');
+        const response = await paymentAPI.checkChatAccess();
+        console.log('🔑 Chat access response:', response);
+        setHasChatAccess(response.hasAccess);
+        localStorage.setItem('hasChatAccess', response.hasAccess ? 'true' : 'false');
+        if (response.hasAccess) {
+          console.log('✅ User has chat access, loading conversations...');
+          await loadConversations();
+        } else {
+          console.log('❌ User does not have chat access');
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('❌ Error checking chat access:', err);
+        // Fallback to localStorage if API call fails
+        const storedAccess = localStorage.getItem('hasChatAccess') === 'true';
+        setHasChatAccess(storedAccess);
+        if (storedAccess) {
+          await loadConversations();
+        } else {
+          setError('Failed to verify chat access. Please try again later.');
+        }
+        setLoading(false);
+      }
+    };
+
+    checkAccess();
   }, []);
 
   const loadConversations = async () => {
@@ -78,12 +110,40 @@ const ChatList = () => {
     return `${Math.floor(seconds / 86400)}d ago`;
   };
 
-  if (loading) {
+  if ((hasChatAccess === null || loading) && !error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading chats...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasChatAccess === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-[#651B55] rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Chat Locked</h2>
+          <p className="text-gray-600 mb-6">
+            Unlock chat access to start messaging with your matches. Choose between our daily or monthly subscription plans.
+          </p>
+          <button
+            onClick={() => navigate('/pricing')}
+            className="w-full bg-[#651B55] text-white py-3 px-6 rounded-lg font-medium"
+          >
+            Unlock Chat
+          </button>
+          <button
+            onClick={() => navigate('/swipe')}
+            className="mt-4 text-sm text-[#651B55]  font-medium"
+          >
+            Back to Swipe
+          </button>
         </div>
       </div>
     );

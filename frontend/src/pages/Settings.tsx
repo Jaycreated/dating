@@ -1,12 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Lock, User, HelpCircle } from 'lucide-react';
-import { userAPI } from '../services/api';
+import { LogOut, Lock, User, HelpCircle, CreditCard, Loader2 } from 'lucide-react';
+import { userAPI, paymentAPI } from '../services/api';
 import { ChangePasswordForm } from '../components/forms/ChangePasswordForm';
 
 const Settings = () => {
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{hasAccess: boolean, plan?: string} | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const response = await paymentAPI.checkChatAccess();
+        setSubscriptionStatus({
+          hasAccess: response.hasAccess,
+          plan: response.planType || 'Free'
+        });
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkSubscription();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -20,15 +39,15 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-4 font-['Poppins']">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow">
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 font-['Poppins']">Settings</h1>
           
           <div className="space-y-2">
             <button
               onClick={() => navigate('/profile')}
-              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors text-left font-['Poppins']"
             >
               <User className="w-5 h-5 mr-3 text-gray-600" />
               <span>Edit Profile</span>
@@ -36,7 +55,7 @@ const Settings = () => {
             
             <button
               onClick={() => setShowChangePassword(true)}
-              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors text-left font-['Poppins']"
             >
               <Lock className="w-5 h-5 mr-3 text-gray-600" />
               <span>Change Password</span>
@@ -44,15 +63,35 @@ const Settings = () => {
             
             <button
               onClick={() => navigate('/support')}
-              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors text-left font-['Poppins']"
             >
               <HelpCircle className="w-5 h-5 mr-3 text-gray-600" />
               <span>Help & Support</span>
             </button>
             
             <button
+              onClick={() => navigate('/pricing')}
+              className="w-full flex items-center p-4 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <CreditCard className="w-5 h-5 mr-3 text-gray-600" />
+              <div>
+                <div>Subscription</div>
+                <div className="text-sm text-gray-500">
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                      Loading...
+                    </div>
+                  ) : subscriptionStatus ? (
+                    `Current Plan: ${subscriptionStatus.plan}${subscriptionStatus.hasAccess ? ' (Active)' : ' (Inactive)'}`
+                  ) : 'Unable to load subscription'}
+                </div>
+              </div>
+            </button>
+
+            <button
               onClick={handleLogout}
-              className="w-full flex items-center p-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-4"
+              className="w-full flex items-center p-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-4 font-['Poppins']"
             >
               <LogOut className="w-5 h-5 mr-3" />
               <span>Logout</span>

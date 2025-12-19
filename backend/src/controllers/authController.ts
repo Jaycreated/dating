@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import { redisClient } from '../config/redis';
 import { UserModel } from '../models/User';
 
 // Extend the Express Request type to include our custom properties
@@ -143,6 +145,42 @@ export class AuthController {
     } catch (error) {
       console.error('Logout error:', error);
       res.status(500).json({ error: 'Logout failed' });
+    }
+  }
+
+  /**
+   * Create a short-lived one-time session link for converting into a web cookie session
+   * POST /api/auth/create-web-session
+   */
+  static async createWebSession(req: Request, res: Response) {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: 'Authentication required' });
+
+      // Create one-time session token
+      const token = uuidv4();
+      const SESSION_TTL = 300; // 5 minutes in seconds
+      
+      // Store session in Redis with TTL
+      await redisClient.set(`onetime:${token}`, userId.toString(), {
+        EX: SESSION_TTL,
+        NX: true
+      });
+
+      // Build a session URL on this server (so browser opens server's /session/:id endpoint)
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const serverOrigin = `${protocol}://${host}`;
+      const redirectUrl = `${serverOrigin.replace(/\/$/, '')}/session/${token}`;
+
+      res.json({
+        success: true,
+        redirectUrl,
+        note: 'Open this URL in browser to convert into a web session and complete payment',
+      });
+    } catch (error) {
+      console.error('Create web session error:', error);
+      res.status(500).json({ error: 'Failed to create web session' });
     }
   }
 }

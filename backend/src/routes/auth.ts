@@ -45,4 +45,8 @@ router.post(
 // POST /api/auth/logout
 router.post('/logout', authenticate, AuthController.logout);
 
+// POST /api/auth/create-web-session
+// Creates a short one-time session link for the web (single-use)
+router.post('/create-web-session', authenticate, AuthController.createWebSession);
+
 export default router;
