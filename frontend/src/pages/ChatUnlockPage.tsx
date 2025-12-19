@@ -39,7 +39,12 @@ export default function ChatUnlockPage() {
   const startPaymentVerification = (reference: string) => {
     const interval = setInterval(async () => {
       try {
-        const response = await paymentAPI.verifyPayment(reference);
+        // Get user email from localStorage or auth context
+        const userEmail = localStorage.getItem('userEmail') || '';
+        const response = await paymentAPI.verifyPayment({
+          reference,
+          email: userEmail
+        });
         if (response.verified) {
           clearInterval(interval);
           // Redirect to chat after successful payment

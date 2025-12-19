@@ -58,7 +58,12 @@ const ChatPaymentPage: React.FC = () => {
   const verifyPayment = async (reference: string) => {
     try {
       setVerifying(true);
-      const response = await paymentAPI.verifyPayment(reference);
+      // Get user email from localStorage or auth context
+      const userEmail = localStorage.getItem('userEmail') || '';
+      const response = await paymentAPI.verifyPayment({
+        reference,
+        email: userEmail
+      });
       
       if (response.success && response.data?.status === 'success') {
         // Check if payment was successful and grant access
