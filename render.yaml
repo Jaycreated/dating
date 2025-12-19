@@ -1,7 +1,7 @@
 services:
   - type: web
     name: pairfect-backend
-    env: node
+    runtime: node
     buildCommand: cd backend && npm install && npm run build
     startCommand: npm start
     envVars:
@@ -9,15 +9,18 @@ services:
         value: production
       - key: PORT
         value: 10000
-      # Add other environment variables here
+      # Add other backend environment variables here
 
   - type: web
     name: pairfect-frontend
-    env: node
-    buildCommand: cd frontend && npm install && npm run build
+    runtime: static
+    buildCommand: |
+      cd frontend
+      echo "VITE_API_URL=https://dating-g2mc.onrender.com" > .env.production
+      echo "VITE_APP_URL=https://dating-g2mc.onrender.com" >> .env.production
+      npm install
+      npm run build
     staticPublishPath: "./frontend/dist"
     envVars:
-      - key: REACT_APP_API_URL
-        value: https://pairfect-backend.onrender.com  # Update with your backend URL
       - key: NODE_ENV
         value: production
