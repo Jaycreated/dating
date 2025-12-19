@@ -133,3 +133,231 @@ export const verifyTransaction = async (reference: string) => {
     };
   }
 };
+
+export interface CustomerData {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CreateCustomerResponse {
+  success: boolean;
+  data?: {
+    id: number;
+    customer_code: string;
+    email: string;
+    [key: string]: any;
+  };
+  error?: string;
+}
+
+export interface SubscriptionPlanData {
+  name: string;
+  amount: number; // in kobo
+  interval: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannually' | 'annually';
+  description?: string;
+  send_invoices?: boolean;
+  send_sms?: boolean;
+  currency?: string;
+  invoice_limit?: number;
+}
+
+export interface SubscriptionData {
+  customer: string; // Customer's email or code
+  plan: string; // Plan code
+  authorization: string; // Authorization code
+  start_date?: string; // ISO 8601 format
+}
+
+export const createCustomer = async (customerData: CustomerData): Promise<CreateCustomerResponse> => {
+  try {
+    const response = await paystack.post('/customer', customerData);
+    return {
+      success: response.data.status,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error('Error creating customer:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to create customer'
+    };
+  }
+};
+
+export const createSubscriptionPlan = async (planData: SubscriptionPlanData) => {
+  try {
+    const response = await paystack.post('/plan', {
+      ...planData,
+      amount: planData.amount * 100, // Convert to kobo
+      currency: planData.currency || 'NGN',
+      send_invoices: planData.send_invoices !== false,
+      send_sms: planData.send_sms || false,
+    });
+
+    return {
+      success: response.data.status,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error('Error creating subscription plan:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to create subscription plan'
+    };
+  }
+};
+
+export const createSubscription = async (subscriptionData: SubscriptionData) => {
+  try {
+    const response = await paystack.post('/subscription', subscriptionData);
+    return {
+      success: response.data.status,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error('Error creating subscription:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to create subscription'
+    };
+  }
+};
+
+export const getSubscription = async (subscriptionId: string | number) => {
+  try {
+    const response = await paystack.get(`/subscription/${subscriptionId}`);
+    return {
+      success: response.data.status,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error('Error fetching subscription:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to fetch subscription'
+    };
+  }
+};
+
+export const updateSubscription = async (subscriptionId: string | number, data: { code?: string; token?: string }) => {
+  try {
+    const response = await paystack.put(`/subscription/${subscriptionId}`, data);
+    return {
+      success: response.data.status,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error('Error updating subscription:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to update subscription'
+    };
+  }
+};
+
+export const cancelSubscription = async (subscriptionId: string | number) => {
+  try {
+    const response = await paystack.post(`/subscription/disable`, {
+      code: subscriptionId,
+      token: 'dummy-token' // This is required by Paystack but not used
+    });
+    
+    return {
+      success: response.data.status,
+      data: response.data.data
+    };
+  } catch (error: any) {
+    console.error('Error canceling subscription:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to cancel subscription'
+    };
+  }
+};
+
+export const listSubscriptions = async (params: {
+  perPage?: number;
+  page?: number;
+  customer?: string;
+  plan?: string;
+  status?: 'active' | 'cancelled' | 'expired';
+}) => {
+  try {
+    const response = await paystack.get('/subscription', { params });
+    return {
+      success: response.data.status,
+      data: response.data.data,
+      meta: response.data.meta
+    };
+  } catch (error: any) {
+    console.error('Error listing subscriptions:', error.response?.data || error.message);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to list subscriptions'
+    };
+  }
+};
+
+/**
+ * Verifies that a webhook event is actually from Paystack
+ * @param req - The Express request object
+ * @returns boolean - True if the webhook is valid, false otherwise
+ */
+export const verifyWebhook = (req: any): boolean => {
+  try {
+    const crypto = require('crypto');
+    const signature = req.headers['x-paystack-signature'] as string;
+    
+    if (!signature || !process.env.PAYSTACK_WEBHOOK_SECRET) {
+      console.error('Webhook verification failed: Missing signature or webhook secret');
+      return false;
+    }
+    
+    // Get the raw request body as a string
+    const requestBody = JSON.stringify(req.body);
+    
+    // Create a hash using the webhook secret
+    const hash = crypto
+      .createHmac('sha512', process.env.PAYSTACK_WEBHOOK_SECRET)
+      .update(requestBody)
+      .digest('hex');
+    
+    // Compare the computed hash with the signature from Paystack
+    return hash === signature;
+  } catch (error) {
+    console.error('Error verifying webhook:', error);
+    return false;
+  }
+};
+
+export interface WebhookEvent<T = any> {
+  event: string;
+  data: T;
+}
+
+export interface SubscriptionWebhookData {
+  id: number;
+  domain: string;
+  status: string;
+  amount: number;
+  subscription_code: string;
+  customer: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    customer_code: string;
+    phone: string | null;
+  };
+  plan: {
+    id: number;
+    name: string;
+    plan_code: string;
+    amount: number;
+    interval: string;
+  };
+  next_payment_date: string | null;
+  paystack_customer_id: string;
+}

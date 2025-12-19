@@ -10,6 +10,9 @@ interface Message {
   receiver_id: number;
   content: string;
   created_at: string;
+    isOptimistic?: boolean; 
+  isError?: boolean;       
+  error?: string;  
 }
 
 interface Match {
@@ -28,7 +31,10 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [hasChatAccess, setHasChatAccess] = useState<boolean | null>(null);
+  const [hasChatAccess, setHasChatAccess] = useState<boolean | null>(() => {
+    const storedAccess = localStorage.getItem('hasChatAccess');
+    return storedAccess ? storedAccess === 'true' : null;
+  });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -39,10 +45,14 @@ const Chat = () => {
       const response = await paymentAPI.checkChatAccess();
       const hasAccess = response.hasAccess;
       setHasChatAccess(hasAccess);
+      localStorage.setItem('hasChatAccess', hasAccess ? 'true' : 'false');
       return hasAccess;
     } catch (error) {
       console.error('Error checking chat access:', error);
-      return false;
+      // Fallback to localStorage if API call fails
+      const storedAccess = localStorage.getItem('hasChatAccess') === 'true';
+      setHasChatAccess(storedAccess);
+      return storedAccess;
     }
   }, []);
 
@@ -209,38 +219,52 @@ const Chat = () => {
       return;
     }
     
-    console.log('Message:', newMessage);
-    console.log('Match:', match);
-    console.log('Match ID:', matchId);
-    console.log('Socket connected:', socketService.isConnected());
-    
-    if (!newMessage.trim()) {
-      console.log('❌ Message is empty');
-      return;
-    }
-    
     if (!match) {
       console.log('❌ No match found');
       return;
     }
 
-    console.log('✅ Sending message via socket...');
+    // Create a temporary message ID (will be replaced by server)
+    const tempId = Date.now();
+    const messageContent = newMessage.trim();
+    
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: tempId,
+      sender_id: currentUserId,
+      receiver_id: match.id,
+      content: messageContent,
+      created_at: new Date().toISOString(),
+      isOptimistic: true // Custom flag to identify optimistic messages
+    };
+
+    // Add to messages immediately for instant feedback
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('');
     setIsSending(true);
     
+    // Stop typing indicator
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    socketService.sendStopTyping(parseInt(matchId!), match.id);
+    
     try {
-      socketService.sendMessage(parseInt(matchId!), match.id, newMessage.trim());
-      setNewMessage('');
+      // Send message via socket
+      socketService.sendMessage(parseInt(matchId!), match.id, messageContent);
       
-      // Stop typing indicator
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      socketService.sendStopTyping(parseInt(matchId!), match.id);
+      // The actual message will be added to the state via the socket event
+      // The optimistic message will be replaced when the real message arrives
       
-      // Reset sending state after a short delay
-      setTimeout(() => setIsSending(false), 500);
     } catch (error) {
       console.error('❌ Error sending message:', error);
+      // Update the message to show it failed to send
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId 
+          ? { ...msg, isError: true, error: 'Failed to send' } 
+          : msg
+      ));
+    } finally {
       setIsSending(false);
     }
   };
@@ -281,7 +305,34 @@ const Chat = () => {
     return Array.isArray(photos) ? photos[0] || 'https://via.placeholder.com/100' : 'https://via.placeholder.com/100';
   };
 
+  // Show loading state while checking access or loading messages
+  if (hasChatAccess === null || loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
+  // Check if user has chat access
   if (hasChatAccess === false) {
+    // Double check with server before showing lock screen
+    useEffect(() => {
+      const verifyAccess = async () => {
+        try {
+          const response = await paymentAPI.checkChatAccess();
+          if (response.hasAccess) {
+            setHasChatAccess(true);
+            localStorage.setItem('hasChatAccess', 'true');
+          }
+        } catch (error) {
+          console.error('Error verifying chat access:', error);
+        }
+      };
+      
+      verifyAccess();
+    }, []);
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
@@ -305,15 +356,6 @@ const Chat = () => {
             Back to Matches
           </button>
         </div>
-      </div>
-    );
-  }
-
-  // Show loading state while checking access
-  if (hasChatAccess === null) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
       </div>
     );
   }

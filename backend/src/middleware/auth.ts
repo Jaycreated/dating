@@ -159,7 +159,10 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
     // Get user's chat access status, payment details, and plan type
     const result = await pool.query(
       `SELECT u.id, u.has_chat_access, u.payment_date, u.payment_reference,
-              pt.metadata->>'planType' as plan_type
+              pt.metadata->>'planType' as plan_type,
+              pt.status as payment_status,
+              pt.amount,
+              pt.created_at as payment_created_at
        FROM users u
        LEFT JOIN payment_transactions pt ON u.payment_reference = pt.reference
        WHERE u.id = $1
@@ -181,10 +184,12 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
     console.log(`ℹ️ [PAYMENT] User ${user.id} chat access: ${user.has_chat_access}`);
     
     // Check if user has active subscription
-    let hasValidSubscription = user.has_chat_access === true;
+    let hasValidSubscription = false;
     let subscriptionStatus = 'none';
     
-    if (hasValidSubscription && user.payment_date) {
+    // Only consider the subscription valid if payment status is 'success'
+    if (user.payment_status === 'success' && user.payment_date) {
+      hasValidSubscription = user.has_chat_access === true;
       const paymentDate = new Date(user.payment_date);
       const now = new Date();
       const hoursDiff = (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60);
@@ -200,6 +205,7 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
             'UPDATE users SET has_chat_access = false WHERE id = $1',
             [user.id]
           );
+          console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (daily plan expired)`);
         }
       } else if (user.plan_type === 'monthly') {
         subscriptionStatus = 'monthly';
@@ -210,24 +216,52 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
             'UPDATE users SET has_chat_access = false WHERE id = $1',
             [user.id]
           );
+          console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (monthly plan expired)`);
         }
       }
     }
     
     if (!hasValidSubscription) {
-      console.log(`🚫 [PAYMENT] User ${user.id} does not have valid chat access`);
+      console.log(`🚫 [PAYMENT] User ${user.id} does not have valid chat access. ` +
+                 `Payment status: ${user.payment_status || 'none'}, ` +
+                 `Plan: ${user.plan_type || 'none'}, ` +
+                 `Last payment: ${user.payment_date || 'never'}`);
+      
+      // Update has_chat_access to false if it was true
+      if (user.has_chat_access) {
+        await pool.query(
+          'UPDATE users SET has_chat_access = false WHERE id = $1',
+          [user.id]
+        );
+        console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (invalid payment status)`);
+      }
+      
       return res.status(403).json({ 
         success: false,
-        error: 'Subscription required or expired',
+        error: 'Premium Feature: Chat Access',
         code: 'SUBSCRIPTION_REQUIRED',
-        message: 'You need an active subscription to access chat features',
+        message: '🔒 Upgrade to Premium to start chatting',
         details: {
-          userId: user.id,
-          hasActiveSubscription: false,
-          subscriptionStatus,
-          lastPaymentDate: user.payment_date,
-          paymentReference: user.payment_reference,
-          planType: user.plan_type
+          description: 'To start chatting with other members, please subscribe to one of our premium plans.',
+          action: 'Upgrade your account to unlock all features',
+          buttonText: 'View Subscription Plans',
+          redirectTo: '/pricing',
+          features: [
+            'Unlimited messaging',
+            'See who liked you',
+            'Advanced search filters',
+            'Ad-free experience'
+          ],
+          currentStatus: {
+            userId: user.id,
+            hasActiveSubscription: false,
+            subscriptionStatus: subscriptionStatus,
+            lastPaymentDate: user.payment_date,
+            paymentStatus: user.payment_status || 'none',
+            planType: user.plan_type || 'Free',
+            amount: user.amount ? (user.amount / 100).toFixed(2) : '0.00',
+            paymentReference: user.payment_reference
+          }
         }
       });
     }

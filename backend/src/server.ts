@@ -19,6 +19,7 @@ import messageRoutes from './routes/messages';
 import conversationRoutes from './routes/conversations';
 import notificationRoutes from './routes/notifications';
 import paymentRoutes from './routes/payment.routes';
+import subscriptionRoutes from './routes/subscription.routes';
 
 // Validate required environment variables
 if (!process.env.JWT_SECRET) {
@@ -91,6 +92,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // Serve static files from the React frontend app
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
@@ -136,12 +138,12 @@ io.use(async (socket, next) => {
   
   if (!token) {
     console.error('❌ [SOCKET] No token provided');
-    return next(new Error('Authentication token is required'));
+    return next(new Error('Authentication error: No token provided'));
   }
 
   try {
-    // Verify JWT token - no fallback secret
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    // Verify JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: number };
     
     if (!decoded || !decoded.userId) {
       console.error('❌ [SOCKET] Invalid token format');
@@ -150,38 +152,87 @@ io.use(async (socket, next) => {
     
     const userId = decoded.userId;
     
-    // Verify user has chat access
-    try {
-      const result = await pool.query(
-        'SELECT id, has_chat_access FROM users WHERE id = $1',
-        [userId]
-      );
-      
-      if (result.rows.length === 0) {
-        console.error(`❌ [SOCKET] User not found with ID: ${userId}`);
-        return next(new Error('User not found'));
-      }
-      
-      const user = result.rows[0];
-      
-      if (!user.has_chat_access) {
-        console.log(`🚫 [SOCKET] User ${userId} does not have chat access`);
-        return next(new Error('Payment required for chat access'));
-      }
-      
-      // All checks passed, attach user ID to socket
-      socket.data.userId = userId;
-      console.log(`✅ [SOCKET] User ${userId} authenticated successfully`);
-      next();
-      
-    } catch (dbError) {
-      console.error('❌ [SOCKET] Database error during authentication:', dbError);
-      return next(new Error('Authentication error'));
+    // Get user's chat access status, payment details, plan type, and payment status
+    const result = await pool.query(
+      `SELECT 
+        u.id, 
+        u.has_chat_access, 
+        u.payment_date, 
+        u.payment_reference,
+        pt.metadata->>'planType' as plan_type,
+        pt.status as payment_status,
+        pt.amount,
+        pt.created_at as payment_created_at
+       FROM users u
+       LEFT JOIN payment_transactions pt ON u.payment_reference = pt.reference
+       WHERE u.id = $1
+       ORDER BY pt.created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+    
+    if (result.rows.length === 0) {
+      console.error(`❌ [SOCKET] User not found with ID: ${userId}`);
+      return next(new Error('User not found'));
     }
     
+    const { 
+      has_chat_access, 
+      payment_date, 
+      plan_type, 
+      payment_status,
+      amount,
+      payment_created_at
+    } = result.rows[0];
+    
+    let hasAccess = false;
+    
+    // Check if payment was successful and valid
+    if (payment_status === 'success' && payment_date) {
+      const paymentDate = new Date(payment_date);
+      const now = new Date();
+      const hoursDiff = (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60);
+      const daysDiff = hoursDiff / 24;
+      
+      // Check subscription expiration based on plan type
+      if (plan_type === 'daily') {
+        hasAccess = hoursDiff <= 24;
+      } else if (plan_type === 'monthly') {
+        hasAccess = daysDiff <= 30;
+      } else {
+        // Default to 24 hours if plan type is not recognized
+        hasAccess = hoursDiff <= 24;
+      }
+      
+      // Update has_chat_access in database if needed
+      if (hasAccess !== has_chat_access) {
+        await pool.query(
+          'UPDATE users SET has_chat_access = $1 WHERE id = $2',
+          [hasAccess, userId]
+        );
+      }
+      
+      console.log(`ℹ️ [PAYMENT] User ${userId} subscription: ${plan_type || 'none'}, ` +
+                 `Status: ${payment_status}, ` +
+                 `Paid: ${amount ? (amount / 100).toFixed(2) : '0'}, ` +
+                 `Active: ${hasAccess}`);
+    } else {
+      console.log(`ℹ️ [PAYMENT] User ${userId} has no valid payment. ` +
+                 `Status: ${payment_status || 'no payment'}`);
+    }
+    
+    if (!hasAccess) {
+      console.log(`🚫 [SOCKET] User ${userId} does not have valid chat access`);
+      return next(new Error('Payment required for chat access'));
+    }
+    
+    // All checks passed, attach user ID to socket
+    socket.data.userId = userId;
+    console.log(`✅ [SOCKET] User ${userId} authenticated with valid subscription`);
+    next();
   } catch (error) {
-    console.error('❌ [SOCKET] Token verification failed:', error);
-    return next(new Error('Invalid or expired token'));
+    console.error('❌ [SOCKET] Error in WebSocket auth:', error);
+    return next(new Error('Authentication error'));
   }
 });
 
