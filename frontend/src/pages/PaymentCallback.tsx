@@ -1,12 +1,11 @@
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { paymentAPI, authAPI } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+import { paymentAPI } from '../services/api';
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
-  const { setUser } = useAuth();
+  const navigate = useNavigate();
 
   const reference =
     searchParams.get('reference') || searchParams.get('trxref');
@@ -29,55 +28,24 @@ const PaymentCallback = () => {
         if (!verification?.success) {
           toast.info(
             verification?.error ||
-              'Payment verification is still processing. You can continue chatting.'
+              'Payment is still processing. You can continue chatting.'
           );
           redirectToChats();
           return;
         }
 
-        // 2. Refresh user session and update chat access
-        try {
-          const user = await authAPI.getMe();
-          if (user) {
-            // Update user in context
-            setUser(user);
-            
-            // Force refresh chat access status
-            try {
-              const accessResponse = await paymentAPI.checkChatAccess();
-              const hasAccess = accessResponse.hasAccess;
-              // Update localStorage
-              localStorage.setItem('hasChatAccess', hasAccess ? 'true' : 'false');
-              
-              // Force a hard refresh to ensure all components re-render with the new access state
-              toast.success('Payment successful! Updating your chat access...');
-              // Clear any cached data that might affect the chat access state
-              localStorage.removeItem('chatAccessChecked');
-              // Use our redirect function which handles the base URL properly
-              redirectToChats();
-              return;
-            } catch (e) {
-              console.error('Error refreshing chat access:', e);
-              // Still redirect even if this fails
-              localStorage.removeItem('chatAccessChecked');
-              toast.success('Payment successful! Loading your chats...');
-              redirectToChats();
-              return;
-            }
-          } else {
-            throw new Error('User fetch failed');
-          }
-        } catch (authError) {
-          console.error('❌ Session refresh failed:', authError);
-          localStorage.removeItem('chatAccessChecked');
-          toast.warning('Payment verified. Refreshing your session...');
-          redirectToChats();
-          return;
-        }
+        // 2. Mark chat access locally
+        localStorage.setItem('hasChatAccess', 'true');
+        localStorage.removeItem('chatAccessChecked');
+
+        toast.success('Payment successful! Redirecting to your chats…');
+
+        // 3. Redirect (SPA navigation — no hard reload)
+        redirectToChats(800);
       } catch (error) {
         console.error('❌ Payment verification error:', error);
         toast.error(
-          'Something went wrong while verifying your payment. You can still access chats.'
+          'Something went wrong while verifying your payment. Redirecting…'
         );
         redirectToChats();
       }
@@ -86,25 +54,10 @@ const PaymentCallback = () => {
     verifyPayment();
   }, [reference]);
 
-  const getBaseUrl = () => {
-    // Use VITE_APP_URL if set, otherwise fall back to current origin
-    return import.meta.env.VITE_APP_URL || window.location.origin;
-  };
-
   const redirectToChats = (delay = 0) => {
     setTimeout(() => {
-      const baseUrl = getBaseUrl();
-      const targetUrl = `${baseUrl}/chats`;
-      console.log('Redirecting to:', targetUrl);
-      window.location.replace(targetUrl);
+      navigate('/chats', { replace: true });
     }, delay);
-  };
-
-  const redirectToLogin = () => {
-    const baseUrl = getBaseUrl();
-    const targetUrl = `${baseUrl}/login?returnTo=/chats`;
-    console.log('Redirecting to login:', targetUrl);
-    window.location.replace(targetUrl);
   };
 
   return (
