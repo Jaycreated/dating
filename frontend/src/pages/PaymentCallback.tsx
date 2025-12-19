@@ -86,14 +86,25 @@ const PaymentCallback = () => {
     verifyPayment();
   }, [reference]);
 
+  const getBaseUrl = () => {
+    // Use VITE_APP_URL if set, otherwise fall back to current origin
+    return import.meta.env.VITE_APP_URL || window.location.origin;
+  };
+
   const redirectToChats = (delay = 0) => {
     setTimeout(() => {
-      window.location.replace('/chats');
+      const baseUrl = getBaseUrl();
+      const targetUrl = `${baseUrl}/chats`;
+      console.log('Redirecting to:', targetUrl);
+      window.location.replace(targetUrl);
     }, delay);
   };
 
   const redirectToLogin = () => {
-    window.location.replace('/login?returnTo=/chats');
+    const baseUrl = getBaseUrl();
+    const targetUrl = `${baseUrl}/login?returnTo=/chats`;
+    console.log('Redirecting to login:', targetUrl);
+    window.location.replace(targetUrl);
   };
 
   return (
