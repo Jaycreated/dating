@@ -189,13 +189,28 @@ export const verifyPayment = async (req: Request, res: Response) => {
     }
 
     // Verify amount matches (security check)
-    if (amount && transaction.amount && amount !== transaction.amount) {
-      await client.query('ROLLBACK');
-      console.error(`Amount mismatch: expected ${transaction.amount}, got ${amount}`);
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Payment amount mismatch' 
+    if (amount && transaction.amount) {
+      // Convert amounts to numbers for comparison
+      const paystackAmountInKobo = Number(amount);
+      const expectedAmountInKobo = Math.round(Number(transaction.amount) * 100); // Convert Naira to kobo
+      
+      // Log amounts for debugging
+      console.log('Payment verification - Verifying payment amounts:', {
+        paystackAmountInKobo,
+        expectedAmountInKobo,
+        storedAmountInNaira: transaction.amount,
+        reference: reference
       });
+      
+      // Check if amounts match (within a small range to handle floating point issues)
+      if (Math.abs(paystackAmountInKobo - expectedAmountInKobo) > 1) {
+        console.error(`Payment verification - Amount mismatch: expected ${expectedAmountInKobo} kobo (${transaction.amount} NGN), got ${paystackAmountInKobo} kobo`);
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          success: false, 
+          error: `Payment amount (${(paystackAmountInKobo / 100).toFixed(2)} NGN) does not match expected amount (${transaction.amount} NGN)`
+        });
+      }
     }
 
     const targetUserId = transaction.user_id || userId;
@@ -371,23 +386,24 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
       const transaction = txResult.rows[0];
       
       // Convert amounts to numbers for comparison
-      const paystackAmountNum = Number(paystackAmount);
-      const expectedAmount = Number(transaction.amount) * 100; // Convert to kobo for comparison
+      // Paystack sends amount in kobo (1 NGN = 100 kobo), we store in Naira
+      const paystackAmountInKobo = Number(paystackAmount);
+      const expectedAmountInKobo = Math.round(Number(transaction.amount) * 100); // Convert Naira to kobo
       
       // Log amounts for debugging
       console.log('Webhook - Verifying payment amounts:', {
-        paystackAmount: paystackAmountNum,
-        expectedAmount,
-        storedAmount: transaction.amount,
+        paystackAmountInKobo,
+        expectedAmountInKobo,
+        storedAmountInNaira: transaction.amount,
         reference: reference
       });
       
       // Check if amounts match (within a small range to handle floating point issues)
-      if (Math.abs(paystackAmountNum - expectedAmount) > 1) {
-        console.error(`Webhook - Amount mismatch: expected ${expectedAmount}, got ${paystackAmountNum}`);
+      if (Math.abs(paystackAmountInKobo - expectedAmountInKobo) > 1) {
+        console.error(`Webhook - Amount mismatch: expected ${expectedAmountInKobo} kobo (${transaction.amount} NGN), got ${paystackAmountInKobo} kobo`);
         await client.query('ROLLBACK');
         return res.status(400).json({ 
-          error: 'Payment amount does not match expected amount' 
+          error: `Payment amount (${(paystackAmountInKobo / 100).toFixed(2)} NGN) does not match expected amount (${transaction.amount} NGN)` 
         });
       }
       
