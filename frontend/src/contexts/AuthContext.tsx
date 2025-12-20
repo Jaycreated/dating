@@ -11,9 +11,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  loginWithToken: (token: string) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -79,8 +80,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const loginWithToken = useCallback(async (token: string) => {
+    try {
+      // Store the token
+      localStorage.setItem('token', token);
+      
+      // Fetch user data with the new token
+      const userData = await refreshUser();
+      return userData;
+    } catch (error) {
+      console.error('Login with token failed:', error);
+      localStorage.removeItem('token');
+      throw error;
+    }
+  }, [refreshUser]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser, logout, setUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      refreshUser, 
+      logout, 
+      setUser,
+      loginWithToken
+    }}>
       {!loading && children}
     </AuthContext.Provider>
   );

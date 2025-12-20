@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiCheck} from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FiCheck } from 'react-icons/fi';
 import { paymentAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 type Plan = {
   name: string;
@@ -14,6 +15,8 @@ type Plan = {
 };
 
 const PricingPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const { user, loginWithToken } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -57,29 +60,60 @@ const PricingPage: React.FC = () => {
     },
   ];
 
+  // Handle token and redirect
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const redirectUri = searchParams.get('redirect_uri');
+
+    const handleToken = async () => {
+      if (token && !user) {
+        try {
+          await loginWithToken(token);
+          // After successful login, check for redirect
+          if (redirectUri) {
+            window.location.href = decodeURIComponent(redirectUri);
+          }
+        } catch (error) {
+          console.error('Login failed:', error);
+        }
+      }
+    };
+
+    handleToken();
+  }, [searchParams, user, loginWithToken]);
+
+  // Handle post-payment redirect
+  useEffect(() => {
+    const postPaymentRedirect = localStorage.getItem('post_payment_redirect');
+    if (user && postPaymentRedirect) {
+      localStorage.removeItem('post_payment_redirect');
+      window.location.href = decodeURIComponent(postPaymentRedirect);
+    }
+  }, [user]);
+
   const handleSubscribe = async (planName: string) => {
     try {
       setIsLoading(planName);
-      // Determine the plan type and amount based on the plan name
       const planType = planName.toLowerCase().includes('daily') ? 'daily' : 'monthly';
       const amount = planType === 'daily' ? 300 : 3000;
       
-      // Initialize payment
       const response = await paymentAPI.initializeChatPayment(amount, planType);
       
       if (response.success && response.data?.payment_url) {
-        // Store the reference in localStorage for verification after redirect
         if (response.data.reference) {
           localStorage.setItem('payment_reference', response.data.reference);
+          // Store the redirect URI if it exists in the URL
+          const redirectUri = searchParams.get('redirect_uri');
+          if (redirectUri) {
+            localStorage.setItem('post_payment_redirect', redirectUri);
+          }
         }
-        // Redirect to payment page
         window.location.href = response.data.payment_url;
       } else {
         throw new Error(response.error || 'Failed to initialize payment');
       }
     } catch (error) {
       console.error('Error initializing payment:', error);
-      // You might want to show an error toast or message to the user
       alert('Failed to initialize payment. Please try again.');
     } finally {
       setIsLoading(null);
