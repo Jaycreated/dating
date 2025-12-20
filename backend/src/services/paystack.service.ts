@@ -74,7 +74,8 @@ export interface CreateDedicatedAccountResponse {
 export const initializePayment = async (
   email: string,
   amount: number,
-  metadata: Record<string, any> = {}
+  metadata: Record<string, any> = {},
+  callbackUrl?: string
 ) => {
   try {
     const reference = `chat_${uuidv4()}`;
@@ -82,7 +83,7 @@ export const initializePayment = async (
       email,
       amount: amount * 100, // Convert to kobo
       reference,
-      callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
+      callback_url: callbackUrl || `${process.env.FRONTEND_URL}/payment/callback`,
       channels: ['bank_transfer', 'card'],
       metadata: {
         ...metadata,
@@ -105,8 +106,9 @@ export const initializePayment = async (
       data: {
         ...response.data.data,
         reference,
+        provider_transaction_id: response.data.data.id,
         payment_url: response.data.data.authorization_url,
-        redirect_url: `${process.env.FRONTEND_URL}/payment/callback?reference=${reference}`
+        redirect_url: (callbackUrl || `${process.env.FRONTEND_URL}/payment/callback`) + `?reference=${reference}`
       }
     };
   } catch (error: any) {

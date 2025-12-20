@@ -38,7 +38,36 @@ export const initializeChatPayment = async (req: Request, res: Response) => {
     const user = userQuery.rows[0];
     
     // Validate input
-    const { amount, planType } = req.body;
+    const { amount: rawAmount, planType, orderId, callbackUrl } = req.body;
+
+    // Validate callbackUrl against whitelist if provided
+    if (callbackUrl) {
+      const whitelist = (process.env.CALLBACK_URL_WHITELIST || '').split(',').map(s => s.trim()).filter(Boolean);
+      const isAllowed = whitelist.length === 0
+        ? false
+        : whitelist.some(pattern => {
+            try {
+              const url = new URL(callbackUrl);
+              // pattern can be a full origin or a prefix like myapp:// or https://example.com
+              if (pattern.endsWith('://')) {
+                return url.protocol === pattern.replace('://','') + ':';
+              }
+              if (pattern.includes('://')) {
+                return callbackUrl.startsWith(pattern);
+              }
+              // otherwise treat as host match
+              return url.host === pattern;
+            } catch (e) {
+              return false;
+            }
+          });
+
+      if (!isAllowed) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, error: 'Invalid callbackUrl' });
+      }
+    }
+    let amount = rawAmount;
     
     if (!amount || isNaN(amount) || amount <= 0) {
       return res.status(400).json({ success: false, error: 'Invalid amount' });
@@ -52,13 +81,40 @@ export const initializeChatPayment = async (req: Request, res: Response) => {
     }
     
     await client.query('BEGIN');
-    
+
+    // If orderId provided, validate order
+    if (orderId) {
+      const orderRes = await client.query(
+        'SELECT id, user_id, amount, status FROM orders WHERE id = $1 FOR UPDATE',
+        [orderId]
+      );
+
+      if (orderRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, error: 'Order not found' });
+      }
+
+      const order = orderRes.rows[0];
+      if (order.user_id !== user.id) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ success: false, error: 'Order does not belong to user' });
+      }
+
+      // If amount wasn't provided or mismatched, ensure it matches the order
+      if (!rawAmount) {
+        amount = order.amount;
+      } else if (Number(order.amount) !== Number(amount)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, error: 'Amount does not match order' });
+      }
+    }
+
     // Initialize payment with Paystack
     const result = await initializePayment(user.email, amount, {
       userId: user.id,
       service: 'chat_access',
       planType
-    });
+    }, callbackUrl);
     
     if (!result.success || !result.data) {
       await client.query('ROLLBACK');
@@ -68,19 +124,19 @@ export const initializeChatPayment = async (req: Request, res: Response) => {
       });
     }
 
-    const { payment_url, reference } = result.data;
+    const { payment_url, reference, provider_transaction_id } = result.data;
 
     if (!payment_url || !reference) {
       await client.query('ROLLBACK');
       throw new Error('Payment URL or reference not received from payment processor');
     }
 
-    // Save transaction record first (with metadata)
+    // Save transaction record first (with metadata, order mapping and provider id)
     await client.query(
       `INSERT INTO payment_transactions 
-       (user_id, reference, amount, status, payment_method, service_type, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [userId, reference, amount, 'pending', 'card', 'chat_access', JSON.stringify({ planType })]
+       (user_id, order_id, reference, provider_transaction_id, amount, status, payment_method, service_type, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [userId, orderId || null, reference, provider_transaction_id || null, amount, 'pending', 'card', 'chat_access', JSON.stringify({ planType })]
     );
 
     // Update user's payment reference

@@ -23,12 +23,17 @@ router.get('/subscription/plans', getSubscriptionPlans);
 // Webhook (no authentication, but verify Paystack signature in controller)
 router.post('/subscription/webhook', handleSubscriptionWebhook);
 
+// Public payment verification endpoint - Paystack/browser callbacks may not have the
+// user's JWT (redirects can land in a different domain/window). Allow verifying
+// a payment by reference (and optional email) without authentication; the
+// controller will still attempt to resolve the user from the transaction or email.
+router.post('/chat/verify', verifyPayment);
+
 // Protected routes (require authentication)
 router.use(authenticate);
 
-// Chat payment endpoints
+// Chat payment endpoints (initialization and access check require auth)
 router.post('/chat/initialize', initializeChatPayment);
-router.post('/chat/verify', verifyPayment);
 router.get('/chat/access', checkChatAccess);
 
 // Subscription management
