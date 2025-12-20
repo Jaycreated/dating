@@ -9,6 +9,8 @@ import {
   cancelSubscription,
   handleSubscriptionWebhook
 } from '../controllers/subscription.controller';
+import { createOrder } from '../controllers/order.controller';
+import { verifyIAP } from '../controllers/iap.controller';
 
 const router = Router();
 
@@ -20,6 +22,12 @@ router.post('/webhook', handleSubscriptionWebhook);
 
 // Protected routes (require authentication)
 router.use(authenticate);
+
+// Create idempotent order for payment initialization
+router.post('/orders', createOrder);
+
+// Verify in-app purchase receipts (requires auth)
+router.post('/verify-iap', verifyIAP);
 
 // Subscription management
 router.post('/subscribe', createSubscription);
