@@ -42,28 +42,41 @@ const PaymentCallback = () => {
 
         // 2. Refresh user session and update chat access
         try {
-          const user = await authAPI.getMe();
-          if (user) {
-            // Update user in context
-            setUser(user);
-            
-            // Force refresh chat access status
+          // If there's no token in localStorage, avoid calling getMe() because the
+          // axios interceptor will auto-redirect on 401 (causing a logout). In
+          // that case, just check chat access and redirect.
+          const token = localStorage.getItem('token');
+          if (!token) {
             try {
               const accessResponse = await paymentAPI.checkChatAccess();
               const hasAccess = accessResponse.hasAccess;
-              // Update localStorage
               localStorage.setItem('hasChatAccess', hasAccess ? 'true' : 'false');
-              
-              // Force a hard refresh to ensure all components re-render with the new access state
-              toast.success('Payment successful! Updating your chat access...');
-              // Clear any cached data that might affect the chat access state
               localStorage.removeItem('chatAccessChecked');
-              // Use our redirect function which handles the base URL properly
+              toast.success('Payment successful! Loading your chats...');
+              redirectToChats();
+              return;
+            } catch (e) {
+              console.error('Error checking chat access without token:', e);
+              localStorage.removeItem('chatAccessChecked');
+              toast.success('Payment successful! Loading your chats...');
+              redirectToChats();
+              return;
+            }
+          }
+
+          const user = await authAPI.getMe();
+          if (user) {
+            setUser(user);
+            try {
+              const accessResponse = await paymentAPI.checkChatAccess();
+              const hasAccess = accessResponse.hasAccess;
+              localStorage.setItem('hasChatAccess', hasAccess ? 'true' : 'false');
+              localStorage.removeItem('chatAccessChecked');
+              toast.success('Payment successful! Updating your chat access...');
               redirectToChats();
               return;
             } catch (e) {
               console.error('Error refreshing chat access:', e);
-              // Still redirect even if this fails
               localStorage.removeItem('chatAccessChecked');
               toast.success('Payment successful! Loading your chats...');
               redirectToChats();
