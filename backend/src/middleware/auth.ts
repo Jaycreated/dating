@@ -156,18 +156,13 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
 
   try {
     console.log(`🔍 [PAYMENT] Checking chat access for user ID: ${req.userId}`);
-    // Get user's chat access status, payment details, and plan type
+    // Get user's chat access status.
+    // The webhook grants chat access by setting `has_chat_access = true` and
+    // `access_expiry_date` on the user record; use those fields as the source of truth.
     const result = await pool.query(
-      `SELECT u.id, u.has_chat_access, u.payment_date, u.payment_reference,
-              pt.metadata->>'planType' as plan_type,
-              pt.status as payment_status,
-              pt.amount,
-              pt.created_at as payment_created_at
-       FROM users u
-       LEFT JOIN payment_transactions pt ON u.payment_reference = pt.reference
-       WHERE u.id = $1
-       ORDER BY pt.created_at DESC
-       LIMIT 1`,
+      `SELECT id, has_chat_access, access_expiry_date
+       FROM users
+       WHERE id = $1`,
       [req.userId]
     );
 
@@ -186,46 +181,19 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
     // Check if user has active subscription
     let hasValidSubscription = false;
     let subscriptionStatus = 'none';
-    
-    // Only consider the subscription valid if payment status is 'success'
-    if (user.payment_status === 'success' && user.payment_date) {
-      hasValidSubscription = user.has_chat_access === true;
-      const paymentDate = new Date(user.payment_date);
-      const now = new Date();
-      const hoursDiff = (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60);
-      const daysDiff = hoursDiff / 24;
-      
-      // Check subscription expiration based on plan type
-      if (user.plan_type === 'daily') {
-        subscriptionStatus = 'daily';
-        if (hoursDiff > 24) {
-          hasValidSubscription = false;
-          // Update access status in database
-          await pool.query(
-            'UPDATE users SET has_chat_access = false WHERE id = $1',
-            [user.id]
-          );
-          console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (daily plan expired)`);
-        }
-      } else if (user.plan_type === 'monthly') {
-        subscriptionStatus = 'monthly';
-        if (daysDiff > 30) {
-          hasValidSubscription = false;
-          // Update access status in database
-          await pool.query(
-            'UPDATE users SET has_chat_access = false WHERE id = $1',
-            [user.id]
-          );
-          console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (monthly plan expired)`);
-        }
-      }
+
+    const now = new Date();
+    const expiryDate = user.access_expiry_date ? new Date(user.access_expiry_date) : null;
+    const isExpired = !!expiryDate && now > expiryDate;
+
+    if (user.has_chat_access === true && expiryDate && !isExpired) {
+      hasValidSubscription = true;
+      subscriptionStatus = 'active';
     }
     
     if (!hasValidSubscription) {
       console.log(`🚫 [PAYMENT] User ${user.id} does not have valid chat access. ` +
-                 `Payment status: ${user.payment_status || 'none'}, ` +
-                 `Plan: ${user.plan_type || 'none'}, ` +
-                 `Last payment: ${user.payment_date || 'never'}`);
+                 `Expires: ${expiryDate ? expiryDate.toString() : 'not set'}`);
       
       // Update has_chat_access to false if it was true
       if (user.has_chat_access) {
@@ -233,7 +201,7 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
           'UPDATE users SET has_chat_access = false WHERE id = $1',
           [user.id]
         );
-        console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (invalid payment status)`);
+        console.log(`🔄 [PAYMENT] Updated user ${user.id} chat access to false (${isExpired ? 'subscription expired' : 'no active subscription'})`);
       }
       
       return res.status(403).json({ 
@@ -256,11 +224,7 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
             userId: user.id,
             hasActiveSubscription: false,
             subscriptionStatus: subscriptionStatus,
-            lastPaymentDate: user.payment_date,
-            paymentStatus: user.payment_status || 'none',
-            planType: user.plan_type || 'Free',
-            amount: user.amount ? (user.amount / 100).toFixed(2) : '0.00',
-            paymentReference: user.payment_reference
+            accessExpiryDate: expiryDate ? expiryDate.toISOString() : null
           }
         }
       });

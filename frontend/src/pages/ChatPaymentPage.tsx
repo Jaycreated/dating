@@ -71,7 +71,7 @@ const ChatPaymentPage: React.FC = () => {
         if (accessResponse.hasAccess) {
           setHasAccess(true);
           toast.success('Payment verified successfully! You now have access to chat.');
-          navigate('/chat');
+          navigate('/chats');
         } else {
           throw new Error('Failed to verify chat access after payment');
         }
@@ -93,7 +93,7 @@ const ChatPaymentPage: React.FC = () => {
         const response = await paymentAPI.checkChatAccess();
         if (response.hasAccess) {
           setHasAccess(true);
-          navigate('/chat');
+          navigate('/chats');
         }
       } catch (error) {
         console.error('Error checking chat access:', error);

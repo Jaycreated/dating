@@ -8,6 +8,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import path from 'path';
+import bodyParser from 'body-parser';
 import { initializeDatabase, pool } from './config/database';
 import { MessageModel } from './models/Message';
 
@@ -19,7 +20,6 @@ import messageRoutes from './routes/messages';
 import conversationRoutes from './routes/conversations';
 import notificationRoutes from './routes/notifications';
 import paymentRoutes from './routes/payment.routes';
-import subscriptionRoutes from './routes/subscription.routes';
 
 // Validate required environment variables
 if (!process.env.JWT_SECRET) {
@@ -56,8 +56,20 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
+
+// Regular JSON and URL-encoded body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Raw body parser specifically for Paystack webhook
+app.use('/api/payments/webhook', 
+  bodyParser.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    // Store the raw body for signature verification
+    (req as any).rawBody = req.body.toString();
+    next();
+  }
+);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -92,7 +104,6 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
 
 // Serve static files from the React frontend app
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));

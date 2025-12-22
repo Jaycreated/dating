@@ -264,7 +264,7 @@ export const paymentAPI = {
     return response.data;
   },
   verifyPayment: async (data: { reference: string; email?: string }) => {
-    const response = await api.post('/api/payments/verify', data);
+    const response = await api.post('/api/payments/chat/verify', data);
     return response.data;
   },
 };
