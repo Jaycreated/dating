@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { getApiUrl } from '../config/env';
 
 interface User {
   id: number;
@@ -31,7 +32,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return null;
       }
 
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch(getApiUrl('/api/auth/me'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -39,8 +40,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
-        return userData;
+        const normalizedUser = (userData && (userData.user || userData)) as User;
+        setUser(normalizedUser);
+        return normalizedUser;
       } else {
         // If the token is invalid, clear it
         if (response.status === 401) {
