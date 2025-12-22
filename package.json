@@ -13,7 +13,11 @@
     "build:frontend": "cd frontend && npm run build",
     "start": "cd backend && npm install && npm run build && npm start"
   },
-  "keywords": ["dating", "matchmaking", "monolithic"],
+  "keywords": [
+    "dating",
+    "matchmaking",
+    "monolithic"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

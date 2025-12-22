@@ -8,6 +8,10 @@ if (!PAYSTACK_SECRET_KEY) {
   throw new Error('PAYSTACK_SECRET_KEY is not defined in environment variables');
 }
 
+export const getPaystackSecret = (): string => {
+  return PAYSTACK_SECRET_KEY;
+};
+
 const paystack = axios.create({
   baseURL: PAYSTACK_BASE_URL,
   headers: {
