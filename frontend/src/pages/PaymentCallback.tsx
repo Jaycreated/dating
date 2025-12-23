@@ -38,12 +38,23 @@ const PaymentCallback = () => {
 
   const redirect = (delay = 0) => {
     setTimeout(() => {
-      if (redirectUrl) {
-        // Mobile deep link
-        window.location.href = redirectUrl;
-      } else {
-        // Web fallback
-        window.location.replace('/chats');
+      try {
+        if (redirectUrl) {
+          // Mobile deep link
+          window.location.href = redirectUrl;
+        } else {
+          // Web fallback - ensure proper URL formatting
+          const baseUrl = window.location.origin;
+          const redirectPath = '/chats'.replace(/^\/+/, ''); // Remove any leading slashes
+          const targetUrl = new URL(redirectPath, baseUrl).toString();
+          
+          console.log('Redirecting to:', targetUrl);
+          window.location.href = targetUrl;
+        }
+      } catch (error) {
+        console.error('Redirect error:', error);
+        // Fallback to root if there's an error with URL construction
+        window.location.href = '/';
       }
     }, delay);
   };
