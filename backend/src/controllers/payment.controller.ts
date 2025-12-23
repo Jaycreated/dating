@@ -278,6 +278,45 @@ export const checkChatAccess = async (req: Request, res: Response) => {
    Paystack Webhook
 ======================= */
 
+export const handlePaymentCallback = async (req: Request, res: Response) => {
+  try {
+    const { reference } = req.query;
+
+    console.log('[PAYMENT_CALLBACK] Reference:', reference);
+
+    if (!reference || typeof reference !== 'string') {
+      console.warn('[PAYMENT_CALLBACK] Missing reference');
+      return res.redirect('pairfect://payment-failed');
+    }
+
+    // ✅ Always verify with Paystack
+    const verification = await verifyTransaction(reference);
+
+    if (
+      verification?.success &&
+      verification?.data?.status === 'success'
+    ) {
+      console.log('[PAYMENT_CALLBACK] Payment verified successfully');
+
+      return res.redirect(
+        `pairfect://payment-success?reference=${reference}`
+      );
+    }
+
+    console.warn('[PAYMENT_CALLBACK] Verification failed:', verification?.data);
+    return res.redirect('pairfect://payment-failed');
+
+  } catch (error) {
+    console.error('[PAYMENT_CALLBACK] Error:', error);
+    return res.redirect('pairfect://payment-error');
+  }
+};
+
+
+/**
+ * Handle Paystack webhook events
+ * This is called by Paystack for payment status updates
+ */
 export const handlePaystackWebhook = async (req: Request, res: Response) => {
   console.log('[WEBHOOK] Received webhook', JSON.stringify(req.body));
 
