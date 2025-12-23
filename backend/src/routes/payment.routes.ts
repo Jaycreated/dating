@@ -4,13 +4,17 @@ import {
   initializeChatPayment, 
   verifyPayment, 
   checkChatAccess,
-  handlePaystackWebhook
+  handlePaystackWebhook,
+  handlePaymentCallback
 } from '../controllers/payment.controller';
 
 const router = Router();
 
 // Webhook (no authentication, but verify Paystack signature in controller)
 router.post('/webhook', handlePaystackWebhook);
+
+// Payment callback endpoint (no authentication, called by Paystack after payment)
+router.get('/callback', handlePaymentCallback);
 
 // Public payment verification endpoint - Paystack/browser callbacks may not have the
 // user's JWT (redirects can land in a different domain/window). Allow verifying
