@@ -83,7 +83,10 @@ export const initializePayment = async (
 ) => {
   try {
     const reference = `chat_${uuidv4()}`;
-    const frontendBase = (process.env.FRONTEND_URL || '').replace(/\/\/+$/g, '');
+    
+    // Normalize the base URL by removing all trailing slashes
+    const frontendBase = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+    // Construct callback URL with exactly one slash between base and path
     const computedCallback = callbackUrl || (frontendBase ? `${frontendBase}/payment/callback` : undefined);
 
     const response = await paystack.post('/transaction/initialize', {
@@ -115,7 +118,10 @@ export const initializePayment = async (
         reference,
         provider_transaction_id: response.data.data.id,
         payment_url: response.data.data.authorization_url,
-        redirect_url: (computedCallback ? computedCallback : '') + `?reference=${reference}`
+        // Ensure clean URL construction for redirect
+        redirect_url: computedCallback 
+          ? `${computedCallback.replace(/\?.*$/, '')}?reference=${reference}`
+          : ''
       }
     };
   } catch (error: any) {
