@@ -7,7 +7,7 @@ interface TokenPayload {
   [key: string]: any;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || window.location.origin;
 
 // Create axios instance
 const api = axios.create({
