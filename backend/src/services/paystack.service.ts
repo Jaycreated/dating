@@ -83,11 +83,14 @@ export const initializePayment = async (
 ) => {
   try {
     const reference = `chat_${uuidv4()}`;
+    const frontendBase = (process.env.FRONTEND_URL || '').replace(/\/\/+$/g, '');
+    const computedCallback = callbackUrl || (frontendBase ? `${frontendBase}/payment/callback` : undefined);
+
     const response = await paystack.post('/transaction/initialize', {
       email,
       amount: amount * 100, // Convert to kobo
       reference,
-      callback_url: callbackUrl || `${process.env.FRONTEND_URL}/payment/callback`,
+      callback_url: computedCallback,
       channels: ['bank_transfer', 'card'],
       metadata: {
         ...metadata,
@@ -112,7 +115,7 @@ export const initializePayment = async (
         reference,
         provider_transaction_id: response.data.data.id,
         payment_url: response.data.data.authorization_url,
-        redirect_url: (callbackUrl || `${process.env.FRONTEND_URL}/payment/callback`) + `?reference=${reference}`
+        redirect_url: (computedCallback ? computedCallback : '') + `?reference=${reference}`
       }
     };
   } catch (error: any) {
