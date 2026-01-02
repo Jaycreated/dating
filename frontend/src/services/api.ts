@@ -7,7 +7,9 @@ interface TokenPayload {
   [key: string]: any;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || window.location.origin;
+// Ensure API base URL doesn't end with a slash
+const normalizeUrl = (url: string) => url.endsWith('/') ? url.slice(0, -1) : url;
+const API_BASE_URL = normalizeUrl(import.meta.env.VITE_API_URL || window.location.origin);
 
 // Create axios instance
 const api = axios.create({
