@@ -68,6 +68,7 @@ const Chat = () => {
         }
       } else {
         setShowPaymentModal(true);
+        setLoading(false);
       }
     };
     
@@ -77,30 +78,35 @@ const Chat = () => {
       const user = JSON.parse(userData);
       setCurrentUserId(user.id);
       verifyAccess();
+    } else {
+      setLoading(false);
     }
   }, [checkChatAccess, matchId]);
 
   useEffect(() => {
-    // Get current user ID
+    // Get current user ID from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
       setCurrentUserId(user.id);
-      
-      // Check chat access when component mounts
-      checkChatAccess();
     }
 
-    // Connect to socket
+    // Only connect to socket and join conversation when chat access is confirmed
+    if (!hasChatAccess) {
+      // Ensure any existing socket is disconnected if access revoked/not granted
+      socketService.disconnect();
+      return;
+    }
+
     console.log('🔌 Connecting to socket...');
     socketService.connect();
-    
+
     // Wait a bit for connection then check
     setTimeout(() => {
       console.log('Socket connection status:', socketService.isConnected());
     }, 1000);
 
-    // Join conversation
+    // Join conversation and load data
     if (matchId) {
       socketService.joinConversation(parseInt(matchId));
       loadMessages();
@@ -134,7 +140,7 @@ const Chat = () => {
       socketService.offUserTyping();
       socketService.offUserStopTyping();
     };
-  }, [matchId]);
+  }, [matchId, hasChatAccess]);
 
   useEffect(() => {
     scrollToBottom();
@@ -316,42 +322,25 @@ const Chat = () => {
 
   // Check if user has chat access
   if (hasChatAccess === false) {
-    // Double check with server before showing lock screen
-    useEffect(() => {
-      const verifyAccess = async () => {
-        try {
-          const response = await paymentAPI.checkChatAccess();
-          if (response.hasAccess) {
-            setHasChatAccess(true);
-            localStorage.setItem('hasChatAccess', 'true');
-          }
-        } catch (error) {
-          console.error('Error verifying chat access:', error);
-        }
-      };
-      
-      verifyAccess();
-    }, []);
-    
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-10 h-10 text-purple-600" />
+            <Lock className="w-10 h-10 text-[#651B55]" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-3">Chat Locked</h2>
           <p className="text-gray-600 mb-6">
-            Unlock chat access to start messaging with your matches. This is a one-time payment.
+            Unlock chat access to start messaging with your matches.
           </p>
           <button
-            onClick={() => navigate('/payment/chat')}
-            className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+            onClick={() => navigate('/pricing')}
+            className="w-full bg-[#651B55] text-white py-3 px-6 rounded-lg font-medium"
           >
             Unlock Chat
           </button>
           <button
             onClick={() => navigate('/matches')}
-            className="mt-4 text-sm text-purple-600 hover:text-purple-700 font-medium"
+            className="mt-4 text-sm text-[#651B55] font-medium"
           >
             Back to Matches
           </button>

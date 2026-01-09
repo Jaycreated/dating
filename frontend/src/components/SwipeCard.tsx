@@ -281,7 +281,8 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
           onClick={onLike}
           className="w-[56px] h-[56px] p-[16px] bg-[#FFCFF4] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2"
         >
-          <img alt="heart icon" src="/images/vector.png" className="w-auto h-auto" />
+          {/* Use the public image; filename is `heart.png` (lowercase) in public/images */}
+          <img alt="heart icon" src="/images/heart.png" className="w-auto h-auto" />
         </button>
       </div>
     </div>

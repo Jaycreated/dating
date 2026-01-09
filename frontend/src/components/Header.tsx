@@ -73,14 +73,19 @@ export const Header = () => {
   // Handle click outside to close notification dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+      // Only close if we're not clicking on the notification button or dropdown content
+      const target = event.target as HTMLElement;
+      const isNotificationButton = target.closest('button[aria-label="Notifications"]');
+      const isNotificationContent = target.closest('.notification-dropdown');
+      
+      if (!isNotificationButton && !isNotificationContent) {
         setIsNotificationOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
@@ -185,7 +190,10 @@ export const Header = () => {
                     
                     {/* Notification Dropdown */}
                     {isNotificationOpen && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
+                      <div 
+                        className="notification-dropdown absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50"
+                        onClick={(e) => e.stopPropagation()} // Prevent click from bubbling up
+                      >
                         <div className="p-2 border-b border-gray-200 bg-gray-50">
                           <div className="flex justify-between items-center">
                             <h3 className="font-medium text-sm text-gray-900">Notifications</h3>
@@ -197,7 +205,18 @@ export const Header = () => {
                           </div>
                         </div>
                         
-                        <div className="max-h-72 overflow-y-auto">
+                        <div 
+                          className="max-h-72 overflow-y-auto"
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            console.log('Notification container clicked', { 
+                              target: target.tagName,
+                              className: target.className,
+                              id: target.id,
+                              currentTarget: e.currentTarget.className,
+                              timestamp: new Date().toISOString()
+                            });
+                          }}>
                           {isLoading ? (
                             <div className="p-4 text-center text-gray-500">Loading...</div>
                           ) : notifications.length === 0 ? (
@@ -207,12 +226,35 @@ export const Header = () => {
                               {notifications.map((notification) => (
                                 <div 
                                   key={notification.id}
-                                  className={`p-3 hover:bg-gray-50 cursor-pointer relative ${!notification.read ? 'bg-blue-50' : ''}`}
+                                  className={`notification-item block p-3 hover:bg-gray-50 relative ${!notification.read ? 'bg-blue-50' : ''} cursor-pointer`}
+                                  data-notification-id={notification.id}
+                                  data-notification-type={notification.type}
                                   onClick={async (e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
+                                    console.log('Notification clicked', { 
+                                      id: notification.id,
+                                      type: notification.type,
+                                      time: new Date().toISOString()
+                                    });
                                     
                                     try {
+                                      // Close dropdown first
+                                      setIsNotificationOpen(false);
+                                      
+                                      // Mark as read if needed
+                                      if (!notification.read) {
+                                        await notificationAPI.markAsRead(notification.id);
+                                        setNotifications(prev => 
+                                          prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+                                        );
+                                        setUnreadCount(prev => Math.max(0, prev - 1));
+                                      }
+                                      
+                                      // Navigate based on notification type
+                                      if (['like', 'match'].includes(notification.type)) {
+                                        navigate(`/profile/${notification.from_user_id}`);
+                                      } else {
+                                        navigate('/notifications');
+                                      }
                                       // Mark as read if unread
                                       if (!notification.read) {
                                         await notificationAPI.markAsRead(notification.id);
@@ -226,16 +268,14 @@ export const Header = () => {
                                         );
                                         setUnreadCount(prev => Math.max(0, prev - 1));
                                       }
-                                      
                                       // Close the notification dropdown
                                       setIsNotificationOpen(false);
                                       
                                       // Navigate based on notification type
                                       if (notification.type === 'like' || notification.type === 'match') {
-                                        // Use a small timeout to ensure the dropdown is closed before navigation
-                                        setTimeout(() => {
-                                          navigate(`/profile/${notification.from_user_id}`);
-                                        }, 100);
+                                        navigate(`/profile/${notification.from_user_id}`);
+                                      } else {
+                                        navigate('/notifications');
                                       }
                                     } catch (error) {
                                       console.error('Error handling notification click:', error);
