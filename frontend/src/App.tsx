@@ -10,6 +10,8 @@ import Register from './pages/Register';
 import CompleteProfile from './pages/CompleteProfile';
 import SelectInterests from './pages/SelectInterests';
 import UploadPhotos from './pages/UploadPhotos';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Swipe from './pages/Swipe';
 import Matches from './pages/Matches';
@@ -62,6 +64,8 @@ function App() {
           {/* Auth and registration flow routes with minimal header */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/select-interests" element={<SelectInterests />} />

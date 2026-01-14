@@ -17,6 +17,12 @@ router.post('/register', validateRegistration, handleValidationErrors, AuthContr
 // POST /api/auth/login
 router.post('/login', validateLogin, handleValidationErrors, AuthController.login);
 
+// POST /api/auth/forgot
+router.post('/forgot', express.json(), AuthController.forgotPassword);
+
+// POST /api/auth/reset
+router.post('/reset', express.json(), AuthController.resetPassword);
+
 // GET /api/auth/me
 router.get('/me', authenticate, AuthController.getMe);
 
