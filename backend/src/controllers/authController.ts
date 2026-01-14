@@ -2,8 +2,11 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 import { redisClient } from '../config/redis';
 import { UserModel } from '../models/User';
+import { PasswordResetTokenModel } from '../models/PasswordResetToken';
 
 // Extend the Express Request type to include our custom properties
 declare global {
@@ -145,6 +148,122 @@ export class AuthController {
     } catch (error) {
       console.error('Logout error:', error);
       res.status(500).json({ error: 'Logout failed' });
+    }
+  }
+
+  // POST /api/auth/forgot
+  static async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ error: 'Email is required' });
+
+      const user = await UserModel.findByEmail(email);
+      if (!user) {
+        // Do not reveal whether the email exists
+        console.log(`Password reset requested for non-existent email: ${email}`);
+        return res.json({ success: true });
+      }
+
+      // Remove any existing tokens for this user
+      await PasswordResetTokenModel.deleteByUserId(user.id);
+
+      // Generate a secure random token (raw) and a hash to store
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + (60 * 60 * 1000)); // 1 hour
+
+      await PasswordResetTokenModel.create(user.id, tokenHash, expiresAt);
+
+      // Build reset URL (frontend)
+      const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const resetUrl = `${frontendOrigin.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+
+      // Send email if SMTP configured. Otherwise use Ethereal (dev) and log preview URL.
+      const smtpHost = process.env.SMTP_HOST;
+      if (smtpHost) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: process.env.SMTP_USER ? {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          } : undefined,
+        });
+
+        const mail = await transporter.sendMail({
+          from: process.env.SMTP_FROM || 'no-reply@example.com',
+          to: user.email,
+          subject: 'Password reset',
+          text: `Use this link to reset your password: ${resetUrl}`,
+          html: `<p>Use this link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+        });
+
+        console.log('Password reset email sent:', mail.messageId);
+      } else {
+        // Use Ethereal for dev testing — this creates a test account and transporter
+        try {
+          const testAccount = await nodemailer.createTestAccount();
+          const transporter = nodemailer.createTransport({
+            host: testAccount.smtp.host,
+            port: testAccount.smtp.port,
+            secure: testAccount.smtp.secure,
+            auth: {
+              user: testAccount.user,
+              pass: testAccount.pass,
+            },
+          });
+
+          const info = await transporter.sendMail({
+            from: process.env.SMTP_FROM || 'no-reply@example.com',
+            to: user.email,
+            subject: 'Password reset (dev)',
+            text: `Use this link to reset your password: ${resetUrl}`,
+            html: `<p>Use this link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+          });
+
+          const preview = nodemailer.getTestMessageUrl(info);
+          console.log('Password reset sent via Ethereal. Preview URL:', preview);
+        } catch (err) {
+          console.log('Password reset URL (dev):', resetUrl);
+        }
+      }
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to process password reset' });
+    }
+  }
+
+  // POST /api/auth/reset
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) return res.status(400).json({ error: 'Token and newPassword are required' });
+
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const tokenRow = await PasswordResetTokenModel.findByTokenHash(tokenHash);
+      if (!tokenRow) return res.status(400).json({ error: 'Invalid or expired token' });
+
+      const expiresAt = new Date(tokenRow.expires_at);
+      if (Date.now() > expiresAt.getTime()) {
+        // Delete expired token
+        await PasswordResetTokenModel.deleteById(tokenRow.id);
+        return res.status(400).json({ error: 'Token expired' });
+      }
+
+      // Update user password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      await UserModel.updatePassword(tokenRow.user_id, newPasswordHash);
+
+      // Delete token
+      await PasswordResetTokenModel.deleteById(tokenRow.id);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
     }
   }
 

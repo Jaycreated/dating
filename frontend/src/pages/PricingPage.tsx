@@ -92,30 +92,53 @@ const PricingPage: React.FC = () => {
   }, [user]);
 
   const handleSubscribe = async (planName: string) => {
+    console.log(`[Payment] Starting subscription for plan: ${planName}`);
     try {
+      console.log(`[Payment] Setting loading state for plan: ${planName}`);
       setIsLoading(planName);
+      
       const planType = planName.toLowerCase().includes('daily') ? 'daily' : 'monthly';
       const amount = planType === 'daily' ? 300 : 3000;
+      console.log(`[Payment] Plan details - Type: ${planType}, Amount: ${amount}`);
       
+      console.log('[Payment] Initializing payment with Paystack...');
       const response = await paymentAPI.initializeChatPayment(amount, planType);
+      console.log('[Payment] Payment initialization response:', response);
       
       if (response.success && response.data?.payment_url) {
+        console.log('[Payment] Payment initialization successful');
+        
         if (response.data.reference) {
+          console.log(`[Payment] Storing payment reference: ${response.data.reference}`);
           localStorage.setItem('payment_reference', response.data.reference);
-          // Store the redirect URI if it exists in the URL
+          
           const redirectUri = searchParams.get('redirect_uri');
           if (redirectUri) {
+            console.log(`[Payment] Storing post-payment redirect URI: ${redirectUri}`);
             localStorage.setItem('post_payment_redirect', redirectUri);
+          } else {
+            console.log('[Payment] No redirect_uri found in URL params');
           }
+        } else {
+          console.warn('[Payment] No payment reference received in response');
         }
+        
+        console.log('[Payment] Redirecting to payment gateway...');
         window.location.href = response.data.payment_url;
       } else {
-        throw new Error(response.error || 'Failed to initialize payment');
+        const errorMsg = response.error || 'Failed to initialize payment';
+        console.error('[Payment] Payment initialization failed:', errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (error) {
-      console.error('Error initializing payment:', error);
+      console.error('[Payment] Error in handleSubscribe:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       alert('Failed to initialize payment. Please try again.');
     } finally {
+      console.log('[Payment] Resetting loading state');
       setIsLoading(null);
     }
   };
