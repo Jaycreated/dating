@@ -268,9 +268,27 @@ export const checkChatAccess = async (req: Request, res: Response) => {
     r.rows[0].access_expiry_date &&
     new Date() > new Date(r.rows[0].access_expiry_date);
 
+  const freeUsageRes = await pool.query(
+    `SELECT free_messages_used
+     FROM users WHERE id = $1`,
+    [userId]
+  );
+
+  const FREE_MESSAGES_LIMIT = 3;
+  const freeMessagesUsed = Number(freeUsageRes.rows[0]?.free_messages_used ?? 0);
+  const freeMessagesRemaining = Math.max(0, FREE_MESSAGES_LIMIT - freeMessagesUsed);
+
+  const hasSubscriptionAccess = r.rows[0].has_chat_access && !expired;
+  const hasAccess = hasSubscriptionAccess || freeMessagesRemaining > 0;
+
   res.json({
     success: true,
-    hasAccess: r.rows[0].has_chat_access && !expired
+    hasAccess,
+    freeMessages: {
+      limit: FREE_MESSAGES_LIMIT,
+      used: freeMessagesUsed,
+      remaining: freeMessagesRemaining
+    }
   });
 };
 

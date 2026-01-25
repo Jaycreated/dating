@@ -190,6 +190,24 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
       hasValidSubscription = true;
       subscriptionStatus = 'active';
     }
+
+    // Allow a limited number of free messages before requiring subscription
+    const FREE_MESSAGES_LIMIT = 3;
+    const freeUsageRes = await pool.query(
+      `SELECT free_messages_used
+       FROM users
+       WHERE id = $1`,
+      [user.id]
+    );
+    const freeMessagesUsed = Number(freeUsageRes.rows[0]?.free_messages_used ?? 0);
+    const freeMessagesRemaining = Math.max(0, FREE_MESSAGES_LIMIT - freeMessagesUsed);
+
+    if (!hasValidSubscription && freeMessagesRemaining > 0) {
+      console.log(
+        `✅ [PAYMENT] User ${user.id} allowed via free messages (${freeMessagesRemaining} remaining)`
+      );
+      return next();
+    }
     
     if (!hasValidSubscription) {
       console.log(`🚫 [PAYMENT] User ${user.id} does not have valid chat access. ` +
@@ -214,6 +232,11 @@ export const requirePayment = async (req: Request, res: Response, next: NextFunc
           action: 'Upgrade your account to unlock all features',
           buttonText: 'View Subscription Plans',
           redirectTo: '/pricing',
+          freeMessages: {
+            limit: FREE_MESSAGES_LIMIT,
+            used: freeMessagesUsed,
+            remaining: freeMessagesRemaining
+          },
           features: [
             'Unlimited messaging',
             'See who liked you',
