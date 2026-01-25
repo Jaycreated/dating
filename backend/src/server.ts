@@ -143,6 +143,8 @@ async function verifyMatch(userId: number, receiverId: number): Promise<boolean>
   }
 }
 
+const FREE_MESSAGES_LIMIT = 3;
+
 // Socket.IO authentication middleware
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
@@ -168,6 +170,8 @@ io.use(async (socket, next) => {
       `SELECT 
         u.id, 
         u.has_chat_access, 
+        u.access_expiry_date,
+        u.free_messages_used,
         u.payment_date, 
         u.payment_reference,
         pt.metadata->>'planType' as plan_type,
@@ -189,6 +193,8 @@ io.use(async (socket, next) => {
     
     const { 
       has_chat_access, 
+      access_expiry_date,
+      free_messages_used,
       payment_date, 
       plan_type, 
       payment_status,
@@ -230,6 +236,25 @@ io.use(async (socket, next) => {
     } else {
       console.log(`ℹ️ [PAYMENT] User ${userId} has no valid payment. ` +
                  `Status: ${payment_status || 'no payment'}`);
+    }
+
+    // Fallback to access_expiry_date / has_chat_access as the primary source of truth
+    // and allow limited free messages when no subscription is active
+    const expiryDate = access_expiry_date ? new Date(access_expiry_date) : null;
+    const isExpired = !!expiryDate && new Date() > expiryDate;
+    const hasSubscriptionAccess = (has_chat_access === true) && !!expiryDate && !isExpired;
+    const freeMessagesUsed = Number(free_messages_used ?? 0);
+    const freeMessagesRemaining = Math.max(0, FREE_MESSAGES_LIMIT - freeMessagesUsed);
+
+    if (!hasAccess) {
+      hasAccess = hasSubscriptionAccess;
+    }
+
+    if (!hasAccess && freeMessagesRemaining > 0) {
+      console.log(
+        `✅ [SOCKET] User ${userId} allowed via free messages (${freeMessagesRemaining} remaining)`
+      );
+      hasAccess = true;
     }
     
     if (!hasAccess) {
@@ -279,6 +304,7 @@ io.on('connection', (socket) => {
 
   // Handle sending messages
   socket.on('send_message', async (data: { matchId: number; receiverId: number; content: string }) => {
+    const client = await pool.connect();
     try {
       const { matchId, receiverId, content } = data;
 
@@ -305,8 +331,65 @@ io.on('connection', (socket) => {
         return;
       }
 
+      await client.query('BEGIN');
+
+      const entitlementRes = await client.query(
+        `SELECT has_chat_access, access_expiry_date, free_messages_used
+         FROM users
+         WHERE id = $1
+         FOR UPDATE`,
+        [userId]
+      );
+
+      if (!entitlementRes.rows.length) {
+        await client.query('ROLLBACK');
+        socket.emit('message_error', { error: 'User not found' });
+        return;
+      }
+
+      const row = entitlementRes.rows[0];
+      const expired = row.access_expiry_date && new Date() > new Date(row.access_expiry_date);
+      const hasSubscriptionAccess = row.has_chat_access && !expired;
+
+      const freeMessagesUsed = Number(row.free_messages_used ?? 0);
+      const freeMessagesRemaining = Math.max(0, FREE_MESSAGES_LIMIT - freeMessagesUsed);
+
+      if (!hasSubscriptionAccess && freeMessagesRemaining <= 0) {
+        await client.query('ROLLBACK');
+        socket.emit('message_error', {
+          error: 'Payment required for chat access',
+          code: 'SUBSCRIPTION_REQUIRED',
+          details: {
+            freeMessages: {
+              limit: FREE_MESSAGES_LIMIT,
+              used: freeMessagesUsed,
+              remaining: freeMessagesRemaining
+            }
+          }
+        });
+        return;
+      }
+
       // Save message to database
-      const message = await MessageModel.create(userId, receiverId, content.trim());
+      const messageResult = await client.query(
+        `INSERT INTO messages (sender_id, receiver_id, content)
+         VALUES ($1, $2, $3)
+         RETURNING *`,
+        [userId, receiverId, content.trim()]
+      );
+      const message = messageResult.rows[0];
+
+      // Count this message against the free allowance only for non-subscribers
+      if (!hasSubscriptionAccess) {
+        await client.query(
+          `UPDATE users
+           SET free_messages_used = free_messages_used + 1
+           WHERE id = $1`,
+          [userId]
+        );
+      }
+
+      await client.query('COMMIT');
 
       // Only emit after successful save
       const messageData = {
@@ -331,11 +414,18 @@ io.on('connection', (socket) => {
       socket.emit('message_sent', { messageId: message.id });
 
     } catch (error) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // ignore rollback errors
+      }
       console.error('Error sending message:', error);
       socket.emit('message_error', { 
         error: 'Failed to send message',
         details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       });
+    } finally {
+      client.release();
     }
   });
 

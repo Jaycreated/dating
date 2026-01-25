@@ -67,6 +67,16 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Ensure chat/payment related columns exist when upgrading an existing schema
+    await client.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS has_chat_access BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS access_expiry_date TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS payment_date TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS free_messages_used INTEGER NOT NULL DEFAULT 0;
+    `);
+
     // Matches table (stores likes and passes)
     await client.query(`
       CREATE TABLE IF NOT EXISTS matches (

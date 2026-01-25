@@ -31,6 +31,7 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [freeMessagesRemaining, setFreeMessagesRemaining] = useState<number | null>(null);
   const [hasChatAccess, setHasChatAccess] = useState<boolean | null>(() => {
     const storedAccess = localStorage.getItem('hasChatAccess');
     return storedAccess ? storedAccess === 'true' : null;
@@ -44,6 +45,10 @@ const Chat = () => {
     try {
       const response = await paymentAPI.checkChatAccess();
       const hasAccess = response.hasAccess;
+      const remaining = typeof response?.freeMessages?.remaining === 'number'
+        ? response.freeMessages.remaining
+        : null;
+      setFreeMessagesRemaining(remaining);
       setHasChatAccess(hasAccess);
       localStorage.setItem('hasChatAccess', hasAccess ? 'true' : 'false');
       return hasAccess;
@@ -51,6 +56,7 @@ const Chat = () => {
       console.error('Error checking chat access:', error);
       // Fallback to localStorage if API call fails
       const storedAccess = localStorage.getItem('hasChatAccess') === 'true';
+      setFreeMessagesRemaining(null);
       setHasChatAccess(storedAccess);
       return storedAccess;
     }
@@ -119,6 +125,15 @@ const Chat = () => {
       scrollToBottom();
     });
 
+    // Listen for message errors (e.g., free messages exhausted)
+    socketService.onMessageError((data: any) => {
+      if (data?.code === 'SUBSCRIPTION_REQUIRED') {
+        localStorage.setItem('hasChatAccess', 'false');
+        setHasChatAccess(false);
+        setShowPaymentModal(true);
+      }
+    });
+
     // Listen for typing
     socketService.onUserTyping((data) => {
       if (data.match_id === parseInt(matchId!)) {
@@ -139,6 +154,7 @@ const Chat = () => {
       socketService.offNewMessage();
       socketService.offUserTyping();
       socketService.offUserStopTyping();
+      socketService.offMessageError();
     };
   }, [matchId, hasChatAccess]);
 
@@ -258,6 +274,9 @@ const Chat = () => {
     try {
       // Send message via socket
       socketService.sendMessage(parseInt(matchId!), match.id, messageContent);
+
+      // Refresh free message counter in background (server is source of truth)
+      checkChatAccess();
       
       // The actual message will be added to the state via the socket event
       // The optimistic message will be replaced when the real message arrives
@@ -350,44 +369,50 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex flex-col">
-      {/* Header */}
-      {/* <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button
-            onClick={() => navigate('/matches')}
-            className="p-2 hover:bg-gray-100 rounded-full transition"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
-          </button>
+    <div className="h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 flex flex-col overflow-hidden">
+    {/* Header */}
+    {/* <header className="bg-white shadow-sm">
+      <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
+        <button
+          onClick={() => navigate('/matches')}
+          className="p-2 hover:bg-gray-100 rounded-full transition"
+        >
+          <ArrowLeft className="w-6 h-6 text-gray-600" />
+        </button>
 
-          {match && (
-            <div className="flex items-center gap-3 flex-1">
-              <img
-                src={getFirstPhoto(match.photos)}
-                alt={match.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <div>
-                <h2 className="font-semibold text-gray-900">{match.name}</h2>
-                {isTyping && (
-                  <p className="text-sm text-gray-500 italic">typing...</p>
-                )}
-              </div>
+        {match && (
+          <div className="flex items-center gap-3 flex-1">
+            <img
+              src={getFirstPhoto(match.photos)}
+              alt={match.name}
+              className="w-12 h-12 rounded-full object-cover"
+            />
+            <div>
+              <h2 className="font-semibold text-gray-900">{match.name}</h2>
+              {isTyping && (
+                <p className="text-sm text-gray-500 italic">typing...</p>
+              )}
             </div>
-          )}
-        </div>
-      </header> */}
+          </div>
+        )}
+      </div>
+    </header> */}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-4xl mx-auto w-full">
-        <div className="space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-gray-500">No messages yet. Say hi! 👋</p>
-            </div>
-          ) : (
-            messages.map((message) => {
+    {/* Messages */}
+    <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto space-y-4">
+        {hasChatAccess && typeof freeMessagesRemaining === 'number' && freeMessagesRemaining > 0 && (
+          <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border border-purple-200 text-purple-800 rounded-lg px-4 py-2 text-sm">
+            Free messages left: {freeMessagesRemaining}/3
+          </div>
+        )}
+        {messages.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-500">No messages yet. Say hi! 👋</p>
+          </div>
+        ) : (
+          <>
+            {messages.map((message) => {
               const isOwnMessage = message.sender_id === currentUserId;
               return (
                 <div
@@ -412,11 +437,12 @@ const Chat = () => {
                   </div>
                 </div>
               );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            })}
+            <div ref={messagesEndRef} />
+          </>
+        )}
       </div>
+    </div>
 
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-4 py-4">

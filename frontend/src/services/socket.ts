@@ -5,6 +5,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL;
 
 class SocketService {
   private socket: Socket | null = null;
+  private messageErrorHandler: ((data: any) => void) | null = null;
 
   connect() {
     console.log('🔌 Attempting to connect to WebSocket...');
@@ -64,6 +65,9 @@ class SocketService {
 
     this.socket.on('message_error', (data) => {
       console.error('❌ Message error:', data);
+      if (this.messageErrorHandler) {
+        this.messageErrorHandler(data);
+      }
     });
   }
 
@@ -150,6 +154,14 @@ class SocketService {
     if (this.socket) {
       this.socket.off('message_notification');
     }
+  }
+
+  onMessageError(callback: (data: any) => void) {
+    this.messageErrorHandler = callback;
+  }
+
+  offMessageError() {
+    this.messageErrorHandler = null;
   }
 
   sendTyping(matchId: number, receiverId: number) {
