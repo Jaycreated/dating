@@ -48,4 +48,12 @@ export class MatchModel {
     );
     return result.rows[0]?.action || null;
   }
+
+  static async deleteByUserId(userId: number): Promise<boolean> {
+    const result = await pool.query(
+      'DELETE FROM matches WHERE user_id = $1 OR target_user_id = $1',
+      [userId]
+    );
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 }

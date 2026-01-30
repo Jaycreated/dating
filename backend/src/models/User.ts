@@ -169,4 +169,20 @@ export class UserModel {
       [newPasswordHash, userId]
     );
   }
+
+  static async deleteSettingsByUserId(userId: number): Promise<boolean> {
+    const result = await pool.query(
+      'UPDATE users SET preferences = NULL, updated_at = NOW() WHERE id = $1',
+      [userId]
+    );
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  static async deleteProfileByUserId(userId: number): Promise<boolean> {
+    const result = await pool.query(
+      'UPDATE users SET bio = NULL, photos = NULL, age = NULL, gender = NULL, location = NULL, updated_at = NOW() WHERE id = $1',
+      [userId]
+    );
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 }

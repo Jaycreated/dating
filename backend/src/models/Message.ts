@@ -59,4 +59,12 @@ export class MessageModel {
     );
     return result.rows;
   }
+
+  static async deleteByUserId(userId: number): Promise<boolean> {
+    const result = await pool.query(
+      'DELETE FROM messages WHERE sender_id = $1 OR receiver_id = $1',
+      [userId]
+    );
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 }
