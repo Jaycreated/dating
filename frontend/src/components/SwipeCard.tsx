@@ -274,7 +274,7 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
           onClick={onPass}
           className="w-[56px] h-[56px] p-[16px] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 bg-[#E03131]"
         >
-          <X className="w-8 h-8 text-white" />
+          <X className="w-8 h-8 text-red-500" />
         </button>
 
         <button
