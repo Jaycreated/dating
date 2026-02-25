@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Lock, User, HelpCircle, CreditCard, Loader2 } from 'lucide-react';
+import { LogOut, Lock, User, HelpCircle, CreditCard, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 import { userAPI, paymentAPI } from '../services/api';
 import { ChangePasswordForm } from '../components/forms/ChangePasswordForm';
 
 const Settings = () => {
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<{hasAccess: boolean, plan?: string} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,6 +37,22 @@ const Settings = () => {
       navigate('/login');
     } catch (err) {
       console.error('Logout error:', err);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await userAPI.deleteAccount();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteAccount(false);
     }
   };
 
@@ -96,6 +114,14 @@ const Settings = () => {
               <LogOut className="w-5 h-5 mr-3" />
               <span>Logout</span>
             </button>
+
+            <button
+              onClick={() => setShowDeleteAccount(true)}
+              className="w-full flex items-center p-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-['Poppins']"
+            >
+              <Trash2 className="w-5 h-5 mr-3" />
+              <span>Delete Account</span>
+            </button>
           </div>
         </div>
       </div>
@@ -120,6 +146,58 @@ const Settings = () => {
               onSuccess={() => setShowChangePassword(false)}
               onCancel={() => setShowChangePassword(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteAccount && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Delete Account</h2>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-3">
+                Are you sure you want to delete your account? This action cannot be undone.
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                This will permanently delete:
+              </p>
+              <ul className="text-sm text-gray-500 dark:text-gray-400 mt-2 ml-4 list-disc">
+                <li>Your profile information</li>
+                <li>Your photos</li>
+                <li>Your messages</li>
+                <li>Your matches and swipes</li>
+                <li>Your settings</li>
+              </ul>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteAccount(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Account'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

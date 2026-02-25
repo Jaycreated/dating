@@ -60,4 +60,7 @@ router.get('/potential-matches', (req: Request, res: Response, next: NextFunctio
   next();
 }, UserController.getPotentialMatches);
 
+// DELETE /api/users/account - Delete user account
+router.delete('/account', UserController.deleteAccount);
+
 export default router;

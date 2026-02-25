@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { UserModel } from '../models/User';
+import { MessageModel } from '../models/Message';
+import { MatchModel } from '../models/Match';
 import { UserPreferences } from '../types/index';
 
 // Extend the Express Request type to include our custom properties
@@ -424,6 +426,37 @@ export class UserController {
           userId: req.userId
         }
       });
+    }
+  }
+
+  static async deleteAccount(req: Request, res: Response) {
+    try {
+      const userId = req.userId!;
+      
+      // Delete user's data from all related tables in order
+      // 1. Delete user's messages
+      await MessageModel.deleteByUserId(userId);
+      
+      // 2. Delete user's matches/swipes
+      await MatchModel.deleteByUserId(userId);
+      
+      // 3. Delete user's settings
+      await UserModel.deleteSettingsByUserId(userId);
+      
+      // 4. Delete user's profile/images
+      await UserModel.deleteProfileByUserId(userId);
+      
+      // 5. Finally delete the user account
+      const userDeleted = await UserModel.delete(userId);
+      
+      if (!userDeleted) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      res.status(500).json({ message: 'Failed to delete account' });
     }
   }
 }
