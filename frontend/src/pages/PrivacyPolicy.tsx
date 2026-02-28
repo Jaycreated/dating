@@ -147,6 +147,30 @@ const PrivacyPolicy: React.FC = () => {
                 comply with legal obligations. When you delete your account, your data will be removed
                 within a reasonable timeframe unless required by law.
               </p>
+
+              <h3 className="text-lg font-medium text-gray-800 mb-2">How to Delete Your Account</h3>
+              <p className="text-gray-600 mb-3">
+                You can delete your account directly within the app at any time by following these steps:
+              </p>
+              <ol className="list-decimal pl-6 space-y-2 text-gray-600 mb-4">
+                <li>Open the Pairfect app</li>
+               <li>Go to <strong>Profile</strong></li>
+                <li>Go to <strong>Settings</strong></li>
+                <li>Tap <strong>Delete Account</strong></li>
+                <li>Confirm your decision when prompted</li>
+              </ol>
+              <p className="text-gray-600 mb-4">
+                Upon deletion, all personal data associated with your account — including your profile,
+                photos, messages, and activity history — will be permanently removed immediately.
+                Some data may be retained for a limited period where required by law.
+              </p>
+              <p className="text-gray-600">
+                If you have trouble deleting your account in the app, you can also contact us at{' '}
+                <a href="mailto:support@pairfect.com" className="text-blue-600 hover:underline">
+                  support@pairfect.com
+                </a>{' '}
+                to request account deletion.
+              </p>
             </section>
 
             {/* Children */}
