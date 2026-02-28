@@ -630,6 +630,39 @@ export const Header = () => {
                   </Button>
                 </div>
               )}
+              
+              {/* Legal Links */}
+              <div className="px-4 pt-2 pb-3 border-t border-gray-100">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      navigate('/privacy');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-2 py-2 text-sm text-gray-600 hover:text-purple-800 hover:bg-gray-50 rounded"
+                  >
+                    Privacy Policy
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/support');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-2 py-2 text-sm text-gray-600 hover:text-purple-800 hover:bg-gray-50 rounded"
+                  >
+                    Support
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/pricing');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-2 py-2 text-sm text-gray-600 hover:text-purple-800 hover:bg-gray-50 rounded"
+                  >
+                    Pricing
+                  </button>
+                </div>
+              </div>
             </nav>
           </div>
         </div>
