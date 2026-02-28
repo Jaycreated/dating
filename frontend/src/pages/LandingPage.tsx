@@ -119,6 +119,30 @@ const LandingPage = () => {
             </button>
           </p>
         </div>
+
+        {/* Footer Links */}
+        <div className="text-center mt-8 pb-8">
+          <div className="flex justify-center space-x-6 text-sm">
+            <button
+              onClick={() => navigate('/privacy')}
+              className="text-gray-600 hover:text-purple-800 hover:underline"
+            >
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => navigate('/support')}
+              className="text-gray-600 hover:text-purple-800 hover:underline"
+            >
+              Support
+            </button>
+            <button
+              onClick={() => navigate('/pricing')}
+              className="text-gray-600 hover:text-purple-800 hover:underline"
+            >
+              Pricing
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
