@@ -645,6 +645,15 @@ export const Header = () => {
                   </button>
                   <button
                     onClick={() => {
+                      navigate('/child-safety');
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-2 py-2 text-sm text-gray-600 hover:text-purple-800 hover:bg-gray-50 rounded"
+                  >
+                    Child Safety
+                  </button>
+                  <button
+                    onClick={() => {
                       navigate('/support');
                       setIsMenuOpen(false);
                     }}

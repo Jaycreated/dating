@@ -130,6 +130,12 @@ const LandingPage = () => {
               Privacy Policy
             </button>
             <button
+              onClick={() => navigate('/child-safety')}
+              className="text-gray-600 hover:text-purple-800 hover:underline"
+            >
+              Child Safety
+            </button>
+            <button
               onClick={() => navigate('/support')}
               className="text-gray-600 hover:text-purple-800 hover:underline"
             >
