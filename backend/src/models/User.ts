@@ -3,19 +3,23 @@ import { User, UserPreferences } from '../types';
 
 export class UserModel {
   static async create(email: string, passwordHash: string, name: string): Promise<User> {
+    // Normalize email to lowercase for consistency
+    const normalizedEmail = email.toLowerCase();
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, name) 
        VALUES ($1, $2, $3) 
        RETURNING *`,
-      [email, passwordHash, name]
+      [normalizedEmail, passwordHash, name]
     );
     return result.rows[0];
   }
 
   static async findByEmail(email: string): Promise<User | null> {
+    // Normalize email to lowercase for case-insensitive search
+    const normalizedEmail = email.toLowerCase();
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
-      [email]
+      [normalizedEmail]
     );
     return result.rows[0] || null;
   }
