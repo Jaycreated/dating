@@ -3,7 +3,6 @@ node_modules/
 */node_modules/
 
 # Environment variables
-.env
 *.env
 !.env.example
 
@@ -27,10 +26,10 @@ npm-debug.log*
 Thumbs.db
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
 
 # Uploads
 uploads/
+config.bat
