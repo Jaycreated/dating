@@ -3,10 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import { redisClient } from '../config/redis';
 import { UserModel } from '../models/User';
 import { PasswordResetTokenModel } from '../models/PasswordResetToken';
+import { emailService } from '../services/emailService';
 
 // Extend the Express Request type to include our custom properties
 declare global {
@@ -33,6 +33,11 @@ export class AuthController {
 
       // Create user
       const user = await UserModel.create(email, passwordHash, name);
+
+      // Send welcome email (async, don't wait for it)
+      emailService.sendWelcomeEmail(email, name).catch(error => {
+        console.error('Failed to send welcome email:', error);
+      });
 
       // Generate JWT token
       const jwtSecret = process.env.JWT_SECRET || 'default-secret-key';
@@ -178,55 +183,14 @@ export class AuthController {
       const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
       const resetUrl = `${frontendOrigin.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
 
-      // Send email if SMTP configured. Otherwise use Ethereal (dev) and log preview URL.
-      const smtpHost = process.env.SMTP_HOST;
-      if (smtpHost) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT) || 587,
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: process.env.SMTP_USER ? {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          } : undefined,
-        });
-
-        const mail = await transporter.sendMail({
-          from: process.env.SMTP_FROM || 'no-reply@example.com',
-          to: user.email,
-          subject: 'Password reset',
-          text: `Use this link to reset your password: ${resetUrl}`,
-          html: `<p>Use this link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
-        });
-
-        console.log('Password reset email sent:', mail.messageId);
-      } else {
-        // Use Ethereal for dev testing — this creates a test account and transporter
-        try {
-          const testAccount = await nodemailer.createTestAccount();
-          const transporter = nodemailer.createTransport({
-            host: testAccount.smtp.host,
-            port: testAccount.smtp.port,
-            secure: testAccount.smtp.secure,
-            auth: {
-              user: testAccount.user,
-              pass: testAccount.pass,
-            },
-          });
-
-          const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || 'no-reply@example.com',
-            to: user.email,
-            subject: 'Password reset (dev)',
-            text: `Use this link to reset your password: ${resetUrl}`,
-            html: `<p>Use this link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
-          });
-
-          const preview = nodemailer.getTestMessageUrl(info);
-          console.log('Password reset sent via Ethereal. Preview URL:', preview);
-        } catch (err) {
-          console.log('Password reset URL (dev):', resetUrl);
-        }
+      // Send email using Resend
+      try {
+        await emailService.sendPasswordResetEmail(user.email, resetUrl);
+        console.log('Password reset email sent via Resend');
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Still return success to prevent email enumeration attacks
+        // but log the error for debugging
       }
 
       return res.json({ success: true });
