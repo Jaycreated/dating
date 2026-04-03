@@ -269,21 +269,27 @@ export const SwipeCard = ({ user, onLike, onPass }: SwipeCardProps) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between mt-2">
-        <button
-          onClick={onPass}
-          className="w-[56px] h-[56px] p-[16px] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 bg-[#E03131]"
-        >
-          <X className="w-8 h-8 text-red-500" />
-        </button>
+      <div className="flex justify-between mt-2 items-start">
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={onPass}
+            className="w-[56px] h-[56px] p-[16px] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2 bg-[#E03131]"
+          >
+            <X className="w-8 h-8 text-white" />
+          </button>
+          <span className="text-xs font-bold text-gray-500">keep swiping</span>
+        </div>
 
-        <button
-          onClick={onLike}
-          className="w-[56px] h-[56px] p-[16px] bg-[#FFCFF4] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2"
-        >
-          {/* Use the public image; filename is `heart.png` (lowercase) in public/images */}
-          <img alt="heart icon" src="/images/heart.png" className="w-auto h-auto" />
-        </button>
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={onLike}
+            className="w-[56px] h-[56px] p-[16px] bg-[#FFCFF4] rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform border-2"
+          >
+            {/* Use the public image; filename is `heart.png` (lowercase) in public/images */}
+            <img alt="heart icon" src="/images/heart.png" className="w-auto h-auto" />
+          </button>
+          <span className="text-xs font-bold text-gray-500">like</span>
+        </div>
       </div>
     </div>
   );
