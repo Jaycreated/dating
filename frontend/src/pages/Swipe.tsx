@@ -26,6 +26,7 @@ const Swipe = () => {
   const [matchedUser, setMatchedUser] = useState<PotentialMatch | null>(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadPotentialMatches();
   }, []);
 
@@ -261,7 +262,7 @@ const Swipe = () => {
       </header> */}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-8 ">
        <div className='flex flex-col justify-center items-center'>
          <h2 className='text-xl font-bold'>Discover People around you</h2>
          <p className='text-sm font-sm text-[#636363]'>Keep swiping to find your match</p>
