@@ -11,6 +11,8 @@ import path from 'path';
 import bodyParser from 'body-parser';
 import { initializeDatabase, pool } from './config/database';
 import { MessageModel } from './models/Message';
+import { NotificationService } from './services/notificationService';
+import { UserModel } from './models/User';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -409,6 +411,24 @@ io.on('connection', (socket) => {
         match_id: matchId,
         content: content.trim(),
       });
+
+      // Send push notification to receiver (works even if app is closed)
+      try {
+        const sender = await UserModel.findById(userId);
+        await NotificationService.sendPushNotification(receiverId, {
+          title: `New message from ${sender?.name || 'Someone'}`,
+          body: content.trim(),
+          data: {
+            type: 'message',
+            fromUserId: userId,
+            matchId: matchId,
+            url: `/chat/${matchId}`
+          }
+        });
+      } catch (pushError) {
+        console.error('Failed to send push notification for message:', pushError);
+        // Don't fail the message send if push notification fails
+      }
 
       // Confirm to sender
       socket.emit('message_sent', { messageId: message.id });
