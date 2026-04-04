@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { MatchModel } from '../models/Match';
 import { NotificationModel } from '../models/Notification';
 import { UserModel } from '../models/User';
+import { NotificationService } from '../services/notificationService';
 
 // Extend the Express Request type to include our custom properties
 declare global {
@@ -35,6 +36,17 @@ export class MatchController {
           'match',
           `You matched with ${currentUser?.name}!`
         );
+
+        // Send push notification to target user
+        await NotificationService.sendPushNotification(targetUserId, {
+          title: "It's a Match! 🎉",
+          body: `You matched with ${currentUser?.name}!`,
+          data: {
+            type: 'match',
+            fromUserId: req.userId,
+            url: '/matches'
+          }
+        });
       } else {
         // Send like notification to target user
         await NotificationModel.create(
@@ -43,6 +55,17 @@ export class MatchController {
           'like',
           `${currentUser?.name} liked you!`
         );
+
+        // Send push notification for like
+        await NotificationService.sendPushNotification(targetUserId, {
+          title: 'New Like! 💕',
+          body: `${currentUser?.name} liked you!`,
+          data: {
+            type: 'like',
+            fromUserId: req.userId,
+            url: '/swipe'
+          }
+        });
       }
 
       res.json({
