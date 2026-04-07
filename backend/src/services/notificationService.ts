@@ -6,17 +6,25 @@ import { pool } from '../config/database';
 const expo = new Expo();
 
 // Configure web-push with VAPID keys
-const VAPID_PUBLIC_KEY = (process.env.VAPID_PUBLIC_KEY || '').replace(/=/g, '');
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+// Normalize any provided base64 keys into URL-safe base64 (replace +/, remove padding)
+const rawVapidPublic = process.env.VAPID_PUBLIC_KEY || '';
+const rawVapidPrivate = process.env.VAPID_PRIVATE_KEY || '';
+const VAPID_PUBLIC_KEY = rawVapidPublic.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+const VAPID_PRIVATE_KEY = rawVapidPrivate.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@pairfect.com.ng';
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    VAPID_SUBJECT,
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-  );
-  console.log('✅ Web Push configured with VAPID keys');
+  try {
+    webpush.setVapidDetails(
+      VAPID_SUBJECT,
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+    console.log('✅ Web Push configured with VAPID keys');
+  } catch (err: any) {
+    console.error('Failed to set VAPID details for web-push:', err?.message || err);
+    console.warn('⚠️ Web Push VAPID keys invalid — web push will be disabled');
+  }
 } else {
   console.warn('⚠️ VAPID keys not set - web push notifications will not work');
 }

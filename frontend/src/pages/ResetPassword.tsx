@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PasswordInput } from '../components/forms/PasswordInput';
+import { Input } from '../components/forms/Input';
 import { Button } from '../components/forms/Button';
 import { Alert } from '../components/forms/Alert';
 
@@ -62,22 +62,8 @@ const ResetPassword = () => {
           {success && <Alert type="success" message={success} />}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <PasswordInput 
-              id="password" 
-              name="password" 
-              label="New password" 
-              required 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-            />
-            <PasswordInput 
-              id="confirm" 
-              name="confirm" 
-              label="Confirm password" 
-              required 
-              value={confirm} 
-              onChange={(e) => setConfirm(e.target.value)} 
-            />
+            <Input id="password" name="password" type="password" label="New password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input id="confirm" name="confirm" type="password" label="Confirm password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
 
             <Button type="submit" loading={loading} fullWidth>Set new password</Button>
           </form>
