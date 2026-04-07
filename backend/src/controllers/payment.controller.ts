@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/database';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import {
   initializePayment,
   verifyTransaction,
   getPaystackSecret
 } from '../services/paystack.service';
+import { AppleIAPVerifier, legacyAppleVerification, AppleReceiptData } from '../services/apple-iap';
+import { GooglePlayIAPVerifier, AndroidReceiptData } from '../services/google-play-iap';
 
 /* =======================
    Constants & Types
@@ -20,6 +22,57 @@ type PlanType = keyof typeof PLAN_DURATION;
 
 const isValidPlanType = (plan: any): plan is PlanType =>
   plan === 'daily' || plan === 'monthly';
+
+// IAP Product ID to Plan mapping
+const PRODUCT_ID_TO_PLAN: Record<string, PlanType> = {
+  'com.pairfect.daily': 'daily',
+  'com.pairfect.monthly': 'monthly',
+  'com.pairfect.premium.daily': 'daily',
+  'com.pairfect.premium.monthly': 'monthly',
+};
+
+const PRICE_MAP: Record<string, number> = {
+  'com.pairfect.daily': 300,      // 300 NGN daily
+  'com.pairfect.monthly': 3000,   // 3000 NGN monthly
+  'com.pairfect.premium.daily': 300,
+  'com.pairfect.premium.monthly': 3000,
+};
+
+/* Initialize IAP Verifiers (if env vars are set) */
+let appleVerifier: AppleIAPVerifier | null = null;
+let googleVerifier: GooglePlayIAPVerifier | null = null;
+
+if (process.env.APPLE_PRIVATE_KEY && process.env.APPLE_KEY_ID) {
+  appleVerifier = new AppleIAPVerifier(
+    process.env.APPLE_PRIVATE_KEY,
+    process.env.APPLE_KEY_ID,
+    process.env.APPLE_ISSUER_ID || '',
+    process.env.APPLE_BUNDLE_ID || 'com.anonymous.Pairfect'
+  );
+  console.log('✅ Apple IAP Verifier initialized');
+}
+
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  try {
+    googleVerifier = new GooglePlayIAPVerifier(
+      process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.anonymous.Pairfect'
+    );
+    console.log('✅ Google Play IAP Verifier initialized');
+  } catch (error) {
+    console.error('Failed to initialize Google Play verifier:', error);
+  }
+} else if (process.env.GOOGLE_SERVICE_ACCOUNT_BASE64) {
+  try {
+    googleVerifier = new GooglePlayIAPVerifier(
+      '', // Empty path since using base64
+      process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.anonymous.Pairfect'
+    );
+    console.log('✅ Google Play IAP Verifier initialized (base64)');
+  } catch (error) {
+    console.error('Failed to initialize Google Play verifier:', error);
+  }
+}
 
 /* =======================
    Helpers
@@ -460,6 +513,212 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
     await client.query('ROLLBACK');
     console.error('[WEBHOOK] Error processing webhook', e);
     res.sendStatus(500);
+  } finally {
+    client.release();
+  }
+};
+
+/* =======================
+   IAP Verification
+======================= */
+
+export const verifyIAP = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { receipt, productId, platform } = req.body;
+
+    if (!receipt || !platform) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing receipt or platform',
+      });
+    }
+
+    let verificationResult: any;
+
+    if (platform === 'ios') {
+      // iOS verification
+      if (!appleVerifier) {
+        // Fallback to legacy verification if App Store Server API not configured
+        try {
+          const appleData: AppleReceiptData = {
+            transactionId: receipt.transactionId,
+            receipt: receipt.receipt,
+            productId: productId || receipt.productId,
+          };
+          verificationResult = await legacyAppleVerification(
+            appleData.receipt,
+            process.env.APPLE_SHARED_SECRET
+          );
+        } catch (error) {
+          return res.status(503).json({
+            success: false,
+            message: 'Apple IAP verification not configured',
+          });
+        }
+      } else {
+        const appleData: AppleReceiptData = {
+          transactionId: receipt.transactionId,
+          receipt: receipt.receipt,
+          productId: productId || receipt.productId,
+        };
+        verificationResult = await appleVerifier.verifyReceipt(appleData);
+      }
+    } else if (platform === 'android') {
+      // Android verification
+      if (!googleVerifier) {
+        return res.status(503).json({
+          success: false,
+          message: 'Google Play IAP verification not configured',
+        });
+      }
+
+      const androidData: AndroidReceiptData = {
+        originalJson: receipt.originalJson,
+        signature: receipt.signature,
+        purchaseToken: receipt.purchaseToken,
+        productId: productId || receipt.productId,
+      };
+      verificationResult = await googleVerifier.verifySubscription(androidData);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid platform. Must be "ios" or "android"',
+      });
+    }
+
+    if (!verificationResult.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid receipt',
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // Determine plan type from product ID
+    const planId = PRODUCT_ID_TO_PLAN[verificationResult.productId] || 'monthly';
+    const expiryDate = verificationResult.expiresDate || new Date(Date.now() + PLAN_DURATION[planId]);
+    const amount = PRICE_MAP[verificationResult.productId] || 1000;
+    const paymentReference = verificationResult.transactionId || verificationResult.purchaseToken;
+
+    // Check if subscription already exists
+    const existingSub = await client.query(
+      `SELECT id, status, end_date FROM subscriptions 
+       WHERE user_id = $1 AND payment_reference = $2`,
+      [userId, paymentReference]
+    );
+
+    let subscriptionId: string;
+
+    if (existingSub.rows.length === 0) {
+      // Create new subscription
+      const subResult = await client.query(
+        `INSERT INTO subscriptions 
+         (user_id, plan_id, status, start_date, end_date, payment_reference, 
+          amount, currency, iap_platform, original_transaction_id, purchase_token, auto_renewal_status)
+         VALUES ($1, $2, 'active', NOW(), $3, $4, $5, 'USD', $6, $7, $8, $9)
+         RETURNING id`,
+        [
+          userId,
+          planId,
+          expiryDate,
+          paymentReference,
+          amount,
+          platform,
+          verificationResult.originalTransactionId || null,
+          verificationResult.purchaseToken || null,
+          verificationResult.isRenewable || verificationResult.autoRenewing || false,
+        ]
+      );
+      subscriptionId = subResult.rows[0].id;
+    } else {
+      // Update existing subscription
+      subscriptionId = existingSub.rows[0].id;
+      await client.query(
+        `UPDATE subscriptions 
+         SET status = 'active', end_date = $1, updated_at = NOW()
+         WHERE id = $2`,
+        [expiryDate, subscriptionId]
+      );
+    }
+
+    // Grant chat access
+    await client.query(
+      `UPDATE users
+       SET has_chat_access = true,
+           access_expiry_date = $1::timestamptz
+       WHERE id = $2`,
+      [expiryDate, userId]
+    );
+
+    // Log receipt for audit trail
+    await client.query(
+      `INSERT INTO iap_receipts 
+       (user_id, subscription_id, product_id, platform, receipt_data, status, verified_at)
+       VALUES ($1, $2, $3, $4, $5, 'verified', NOW())`,
+      [
+        userId,
+        subscriptionId,
+        verificationResult.productId,
+        platform,
+        JSON.stringify(receipt),
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      subscription: {
+        id: subscriptionId,
+        userId,
+        planId,
+        status: 'active',
+        startDate: verificationResult.purchaseDate.toISOString(),
+        endDate: expiryDate.toISOString(),
+        paymentReference,
+        amount,
+        currency: 'USD',
+      },
+      message: 'Subscription verified and activated successfully',
+    });
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    console.error('IAP verification error:', error);
+
+    // Log failed receipt
+    const failedUserId = (req as any).user?.id;
+    const failedProductId = req.body.productId;
+    const failedPlatform = req.body.platform;
+    const failedReceipt = req.body.receipt;
+    
+    try {
+      await client.query(
+        `INSERT INTO iap_receipts 
+         (user_id, product_id, platform, receipt_data, status, error_message)
+         VALUES ($1, $2, $3, $4, 'failed', $5)`,
+        [
+          failedUserId,
+          failedProductId,
+          failedPlatform,
+          JSON.stringify(failedReceipt),
+          error.message,
+        ]
+      );
+    } catch (logError) {
+      console.error('Failed to log IAP receipt:', logError);
+    }
+
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Verification failed',
+    });
   } finally {
     client.release();
   }

@@ -5,7 +5,8 @@ import {
   verifyPayment, 
   checkChatAccess,
   handlePaystackWebhook,
-  handlePaymentCallback
+  handlePaymentCallback,
+  verifyIAP
 } from '../controllers/payment.controller';
 
 const router = Router();
@@ -28,6 +29,16 @@ router.use(authenticate);
 // Chat payment endpoints
 router.post('/chat/initialize', initializeChatPayment);
 router.get('/chat/access', checkChatAccess);
+
+// IAP Verification endpoint
+router.post('/verify-iap', verifyIAP);
+
+// Test endpoint (remove in production)
+router.post('/test-iap', async (req, res) => {
+  // Import test function
+  const { testIAP } = require('../test-iap');
+  await testIAP(req, res);
+});
 
 
 export default router;
