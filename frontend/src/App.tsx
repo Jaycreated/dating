@@ -25,8 +25,6 @@ import UserProfile from './pages/UserProfile';
 import PublicProfile from './pages/PublicProfile';
 import Settings from './pages/Settings';
 import HelpSupport from './pages/HelpSupport';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import ChildSafety from './pages/ChildSafety';
 
 // Layout component that includes the full header
 const MainLayout = () => {
@@ -77,8 +75,6 @@ function App() {
           {/* Public pages with minimal header */}
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/support" element={<HelpSupport />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/child-safety" element={<ChildSafety />} />
           
           {/* Protected routes with full layout */}
           <Route element={<MainLayout />}>
