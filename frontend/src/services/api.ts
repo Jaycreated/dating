@@ -174,11 +174,6 @@ export const userAPI = {
   logout: async () => {
     const response = await api.post('/api/auth/logout');
     return response.data;
-  },
-
-  deleteAccount: async () => {
-    const response = await api.delete('/api/users/account');
-    return response.data;
   }
 };
 
