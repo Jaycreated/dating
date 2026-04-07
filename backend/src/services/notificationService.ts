@@ -6,7 +6,7 @@ import { pool } from '../config/database';
 const expo = new Expo();
 
 // Configure web-push with VAPID keys
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PUBLIC_KEY = (process.env.VAPID_PUBLIC_KEY || '').replace(/=/g, '');
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@pairfect.com.ng';
 
