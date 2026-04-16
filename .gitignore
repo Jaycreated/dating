@@ -37,6 +37,10 @@ uploads/
 
 # Secrets
 /backend/secrets/
+/backend/service-account.json
+/backend/*.json
+!backend/package.json
+!backend/tsconfig.json
 *.json
 !package.json
 !tsconfig.json
