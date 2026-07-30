@@ -22,6 +22,7 @@ import messageRoutes from './routes/messages';
 import conversationRoutes from './routes/conversations';
 import notificationRoutes from './routes/notifications';
 import paymentRoutes from './routes/payment.routes';
+import reportRoutes from './routes/reports';
 
 // Validate required environment variables
 if (!process.env.JWT_SECRET) {
@@ -106,6 +107,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Serve static files from the React frontend app
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));

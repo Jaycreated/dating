@@ -30,6 +30,14 @@ export class MessageModel {
     );
   }
 
+  static async deleteById(messageId: number): Promise<boolean> {
+    const result = await pool.query(
+      'DELETE FROM messages WHERE id = $1',
+      [messageId]
+    );
+    return Boolean(result.rowCount && result.rowCount > 0);
+  }
+
   static async getUnreadCount(userId: number): Promise<number> {
     const result = await pool.query(
       'SELECT COUNT(*) as count FROM messages WHERE receiver_id = $1 AND read_at IS NULL',

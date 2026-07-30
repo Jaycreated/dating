@@ -33,7 +33,7 @@ export interface PushNotificationData {
   title: string;
   body: string;
   data?: {
-    type: 'match' | 'like' | 'message';
+    type: 'match' | 'like' | 'message' | 'safety_action';
     url?: string;
     matchId?: number;
     fromUserId?: number;

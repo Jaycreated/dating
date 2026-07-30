@@ -71,6 +71,7 @@ export const initializeDatabase = async () => {
     await client.query(`
       ALTER TABLE users
         ADD COLUMN IF NOT EXISTS has_chat_access BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN NOT NULL DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS access_expiry_date TIMESTAMP WITH TIME ZONE,
         ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255),
         ADD COLUMN IF NOT EXISTS payment_date TIMESTAMP WITH TIME ZONE,
@@ -118,6 +119,32 @@ export const initializeDatabase = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE
       )
+    `);
+
+    // Reports table for safety and moderation incidents
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS reports (
+        id UUID PRIMARY KEY,
+        reporter_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        reported_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content_type VARCHAR(50) NOT NULL CHECK(content_type IN ('message', 'profile')),
+        content_id VARCHAR(255),
+        content TEXT,
+        reason TEXT,
+        status VARCHAR(50) NOT NULL DEFAULT 'pending',
+        moderation_score NUMERIC(5,4) NOT NULL DEFAULT 0,
+        auto_flagged BOOLEAN NOT NULL DEFAULT FALSE,
+        provider VARCHAR(50),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_reports_reporter_user_id ON reports(reporter_user_id);
+      CREATE INDEX IF NOT EXISTS idx_reports_reported_user_id ON reports(reported_user_id);
+      CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
+      CREATE INDEX IF NOT EXISTS idx_reports_content_type ON reports(content_type);
     `);
 
     // Create indexes for better performance

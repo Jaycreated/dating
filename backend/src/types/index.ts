@@ -40,6 +40,22 @@ export interface Message {
   created_at: string;
 }
 
+export interface Report {
+  id: string;
+  reporter_user_id: number;
+  reported_user_id: number;
+  content_type: 'message' | 'profile';
+  content_id?: string | null;
+  content?: string | null;
+  reason?: string | null;
+  status: 'pending' | 'reviewed' | 'actioned' | 'dismissed';
+  moderation_score: number;
+  auto_flagged: boolean;
+  provider?: 'openai' | 'perspective' | 'none';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AuthRequest extends Request {
   userId?: number;
 }
