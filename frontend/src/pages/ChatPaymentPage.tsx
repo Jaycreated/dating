@@ -34,7 +34,7 @@ const ChatPaymentPage: React.FC = () => {
   const initializePayment = async () => {
     try {
       setLoading(true);
-      const amount = selectedPlan === 'daily' ? 300 : 3000;
+      const amount = selectedPlan === 'daily' ? 500 : 3500;
       const response = await paymentAPI.initializeChatPayment(amount, selectedPlan);
       
       if (response.success && response.data?.payment_url) {
@@ -126,7 +126,7 @@ const ChatPaymentPage: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <span className="font-medium">Daily Access</span>
-              <span className="text-lg font-bold">₦300</span>
+              <span className="text-lg font-bold">₦500</span>
             </div>
             <p className="text-sm text-gray-500 mt-1">24 hours of unlimited chat</p>
           </button>
@@ -144,10 +144,10 @@ const ChatPaymentPage: React.FC = () => {
               <div className="flex items-center">
                 <span className="font-medium">Monthly Access</span>
                 <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">
-                  Save 67%
+                  Save 77%
                 </span>
               </div>
-              <span className="text-lg font-bold">₦3,000</span>
+              <span className="text-lg font-bold">₦3,500</span>
             </div>
             <p className="text-sm text-gray-500 mt-1">30 days of unlimited chat</p>
           </button>
@@ -155,7 +155,7 @@ const ChatPaymentPage: React.FC = () => {
         
         <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
           <p className="text-blue-700">
-            <span className="font-medium">Best Value:</span> The monthly plan saves you ₦6,000 compared to daily payments!
+            <span className="font-medium">Best Value:</span> The monthly plan saves you ₦11,500 compared to daily payments!
           </p>
         </div>
         

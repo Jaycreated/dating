@@ -35,7 +35,7 @@ const PricingPage: React.FC = () => {
     },
     {
       name: 'Monthly Chat',
-      price: '₦3000',
+      price: '₦3,500',
       description: '30-day chat access',
       features: [
         'Unlock chats for a month',
@@ -48,7 +48,7 @@ const PricingPage: React.FC = () => {
     },
     {
       name: 'Daily Chat',
-      price: '₦300',
+      price: '₦500',
       description: 'Daily chat access',
       features: [
        'Unlock chats for a day',
@@ -98,7 +98,7 @@ const PricingPage: React.FC = () => {
       setIsLoading(planName);
       
       const planType = planName.toLowerCase().includes('daily') ? 'daily' : 'monthly';
-      const amount = planType === 'daily' ? 300 : 3000;
+      const amount = planType === 'daily' ? 500 : 3500;
       console.log(`[Payment] Plan details - Type: ${planType}, Amount: ${amount}`);
       
       console.log('[Payment] Initializing payment with Paystack...');
@@ -196,7 +196,7 @@ const PricingPage: React.FC = () => {
                     {plan.price}
                   </span>
                   <span className="ml-1 text-xl font-semibold">
-                    {billingCycle === 'monthly' ? '/month' : '/year'}
+                    {plan.name.toLowerCase().includes('daily') ? '/day' : plan.price === '₦0' ? '' : '/month'}
                   </span>
                 </p>
                 <p className="mt-2 text-gray-500">{plan.description}</p>

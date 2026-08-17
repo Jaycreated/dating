@@ -107,7 +107,7 @@ export async function legacyAppleVerification(
   sharedSecret?: string
 ): Promise<AppleVerificationResult> {
   const isSandbox = process.env.NODE_ENV === 'development';
-  const url = isSandbox
+  let url = isSandbox
     ? 'https://sandbox.itunes.apple.com/verifyReceipt'
     : 'https://buy.itunes.apple.com/verifyReceipt';
 
@@ -120,7 +120,13 @@ export async function legacyAppleVerification(
       requestBody.password = sharedSecret;
     }
 
-    const response = await axios.post(url, requestBody);
+    let response = await axios.post(url, requestBody);
+
+    // Status 21007 means receipt is from Sandbox environment, but sent to Production endpoint
+    if (response.data.status === 21007) {
+      console.log('Apple receipt is Sandbox (21007). Retrying against Sandbox endpoint...');
+      response = await axios.post('https://sandbox.itunes.apple.com/verifyReceipt', requestBody);
+    }
 
     if (response.data.status !== 0) {
       throw new Error(
@@ -136,13 +142,13 @@ export async function legacyAppleVerification(
       productId: latestReceipt.product_id,
       transactionId: latestReceipt.transaction_id,
       originalTransactionId: latestReceipt.original_transaction_id,
-      purchaseDate: new Date(parseInt(latestReceipt.purchase_date_ms)),
-      expiresDate: new Date(parseInt(latestReceipt.expires_date_ms)),
+      purchaseDate: new Date(parseInt(latestReceipt.purchase_date_ms || Date.now())),
+      expiresDate: new Date(parseInt(latestReceipt.expires_date_ms || (Date.now() + 86400000))),
       isRenewable: latestReceipt.is_trial_period === 'false',
-      environment: isSandbox ? 'Sandbox' : 'Production',
+      environment: isSandbox || response.data.environment === 'Sandbox' ? 'Sandbox' : 'Production',
     };
   } catch (error: any) {
     console.error('Legacy Apple verification failed:', error?.message);
-    throw new Error('Invalid Apple receipt');
+    throw new Error(error?.message || 'Invalid Apple receipt');
   }
 }
