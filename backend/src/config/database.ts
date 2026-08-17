@@ -217,6 +217,58 @@ export const initializeDatabase = async () => {
       await client.query(`CREATE INDEX IF NOT EXISTS idx_payment_transactions_order_id ON payment_transactions(order_id);`);
     }
 
+    // Subscriptions table for IAP and plans
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        plan_id VARCHAR(50) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        start_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        end_date TIMESTAMP NOT NULL,
+        payment_reference VARCHAR(255),
+        amount INTEGER,
+        currency VARCHAR(3) DEFAULT 'USD',
+        iap_platform VARCHAR(10),
+        auto_renewal_status BOOLEAN DEFAULT FALSE,
+        original_transaction_id VARCHAR(255),
+        purchase_token VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date TIMESTAMP;
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS iap_platform VARCHAR(10);
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS auto_renewal_status BOOLEAN DEFAULT FALSE;
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS original_transaction_id VARCHAR(255);
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS purchase_token VARCHAR(500);
+
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_payment_reference ON subscriptions(payment_reference);
+    `);
+
+    // IAP Receipts table for audit trail
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS iap_receipts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE SET NULL,
+        product_id VARCHAR(255) NOT NULL,
+        platform VARCHAR(10) NOT NULL,
+        receipt_data JSONB NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        error_message TEXT,
+        verified_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_iap_receipts_user_id ON iap_receipts(user_id);
+      CREATE INDEX IF NOT EXISTS idx_iap_receipts_subscription_id ON iap_receipts(subscription_id);
+    `);
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

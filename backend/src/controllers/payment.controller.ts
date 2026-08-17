@@ -31,6 +31,7 @@ const PRODUCT_ID_TO_PLAN: Record<string, PlanType> = {
   'com.pairfect.premium.monthly': 'monthly',
   'ng.com.pairfect.dailysubscribe': 'daily',
   'ng.com.pairfect.monthlysubscribe': 'monthly',
+  'ng.com.pairfect.monthlyaccess': "monthly",
   'ng.com.pairfect.daily': 'daily',
   'ng.com.pairfect.monthly': 'monthly',
 };
@@ -42,6 +43,7 @@ const PRICE_MAP: Record<string, number> = {
   'com.pairfect.premium.monthly': 3500,
   'ng.com.pairfect.dailysubscribe': 500,
   'ng.com.pairfect.monthlysubscribe': 3500,
+  'ng.com.pairfect.monthlyaccess': 3500,
   'ng.com.pairfect.daily': 500,
   'ng.com.pairfect.monthly': 3500,
 };
@@ -678,7 +680,7 @@ export const verifyIAP = async (req: Request, res: Response) => {
         `INSERT INTO subscriptions 
          (user_id, plan_id, status, start_date, end_date, payment_reference, 
           amount, currency, iap_platform, original_transaction_id, purchase_token, auto_renewal_status)
-         VALUES ($1, $2, 'active', NOW(), $3, $4, $5, 'USD', $6, $7, $8, $9)
+         VALUES ($1, $2, 'active', NOW(), $3, $4, $5, 'NGN', $6, $7, $8, $9)
          RETURNING id`,
         [
           userId,
