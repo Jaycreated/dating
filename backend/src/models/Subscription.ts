@@ -67,7 +67,7 @@ export class SubscriptionModel {
         p.created_at as plan_created_at,
         p.updated_at as plan_updated_at
        FROM subscriptions s
-       LEFT JOIN subscription_plans p ON s.plan_id = p.id
+       LEFT JOIN subscription_plans p ON (s.plan_id::text = p.id::text OR s.plan_id = p.plan_id)
        WHERE s.id = $1`,
       [id]
     );
@@ -107,7 +107,7 @@ export class SubscriptionModel {
         p.created_at as plan_created_at,
         p.updated_at as plan_updated_at
        FROM subscriptions s
-       LEFT JOIN subscription_plans p ON s.plan_id = p.id
+       LEFT JOIN subscription_plans p ON (s.plan_id::text = p.id::text OR s.plan_id = p.plan_id)
        WHERE s.user_id = $1 
        AND s.status = 'active'
        ORDER BY s.current_period_end DESC
@@ -249,7 +249,7 @@ export class SubscriptionModel {
             p.created_at as plan_created_at,
             p.updated_at as plan_updated_at
           FROM subscriptions s
-          LEFT JOIN subscription_plans p ON s.plan_id = p.id
+          LEFT JOIN subscription_plans p ON (s.plan_id::text = p.id::text OR s.plan_id = p.plan_id)
           WHERE s.paystack_subscription_code = $1
         `,
         values: [code]
