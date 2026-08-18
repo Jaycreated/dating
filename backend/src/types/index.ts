@@ -77,7 +77,7 @@ export interface SubscriptionPlan {
 export interface Subscription {
   id: number;
   user_id: number;
-  plan_id: number;
+  plan_id: string | number;
   paystack_subscription_code: string;
   paystack_customer_code: string;
   paystack_authorization_code?: string; // Paystack authorization code for the subscription
@@ -95,7 +95,7 @@ export interface Subscription {
 
 export interface CreateSubscriptionInput {
   userId: number;
-  planId: number;
+  planId: string | number;
   paystackCustomerCode: string;
   paystackAuthorizationCode: string;
   metadata?: Record<string, any>;

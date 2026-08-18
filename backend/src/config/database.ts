@@ -237,6 +237,7 @@ export const initializeDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      ALTER TABLE subscriptions ALTER COLUMN plan_id TYPE VARCHAR(50) USING plan_id::varchar;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date TIMESTAMP;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
